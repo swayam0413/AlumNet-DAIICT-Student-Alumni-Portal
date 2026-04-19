@@ -1,13 +1,13 @@
 import {
   collection,
   getDocs,
+  getDoc,
   addDoc,
   updateDoc,
   deleteDoc,
   doc,
   query,
   where,
-  orderBy,
   getCountFromServer,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -20,6 +20,7 @@ export interface Job {
   location: string;
   description: string;
   posted_by: string;
+  posted_by_name?: string;
   status: 'open' | 'closed';
   createdAt?: string;
 }
@@ -41,7 +42,6 @@ class DataService {
     includeUnapproved?: boolean;
   }): Promise<UserProfile[]> {
     try {
-      let q;
       const constraints: any[] = [];
 
       if (!filters?.includeUnapproved) {
@@ -60,7 +60,7 @@ class DataService {
         constraints.push(where('graduation_year', '==', parseInt(filters.batch)));
       }
 
-      q = query(collection(db, 'users'), ...constraints);
+      const q = query(collection(db, 'users'), ...constraints);
       const snap = await getDocs(q);
       return snap.docs.map(d => ({ id: d.id, ...d.data() } as UserProfile));
     } catch (error) {
@@ -80,27 +80,49 @@ class DataService {
     }
   }
 
+  async getAllUsers(): Promise<UserProfile[]> {
+    try {
+      // Get alumni and students separately to avoid complex queries
+      const [alumni, students] = await Promise.all([
+        this.getAlumni({ includeUnapproved: true }),
+        this.getAllStudents(),
+      ]);
+      return [...alumni, ...students];
+    } catch (error) {
+      console.error('getAllUsers error:', error);
+      return [];
+    }
+  }
+
   // --- Stats ---
 
   async getGlobalStats(): Promise<GlobalStats> {
     try {
+      // Use getDocs instead of getCountFromServer for broader compatibility
       const alumniQ = query(collection(db, 'users'), where('role', '==', 'alumni'));
       const studentsQ = query(collection(db, 'users'), where('role', '==', 'student'));
-      const jobsQ = query(collection(db, 'jobs'));
-      const mentorshipsQ = query(collection(db, 'mentorships'), where('status', '==', 'active'));
 
-      const [alumniSnap, studentsSnap, jobsSnap, mentorshipsSnap] = await Promise.all([
-        getCountFromServer(alumniQ),
-        getCountFromServer(studentsQ),
-        getCountFromServer(jobsQ),
-        getCountFromServer(mentorshipsQ).catch(() => ({ data: () => ({ count: 0 }) })),
+      const [alumniSnap, studentsSnap, jobsSnap] = await Promise.all([
+        getDocs(alumniQ),
+        getDocs(studentsQ),
+        getDocs(collection(db, 'jobs')),
       ]);
 
+      // Mentorships may not exist yet, so catch gracefully
+      let mentorshipCount = 0;
+      try {
+        const mentorshipsQ = query(collection(db, 'mentorships'), where('status', '==', 'active'));
+        const mentorshipsSnap = await getDocs(mentorshipsQ);
+        mentorshipCount = mentorshipsSnap.size;
+      } catch {
+        mentorshipCount = 0;
+      }
+
       return {
-        totalAlumni: alumniSnap.data().count,
-        totalStudents: studentsSnap.data().count,
-        totalJobs: jobsSnap.data().count,
-        activeMentorships: mentorshipsSnap.data().count,
+        totalAlumni: alumniSnap.size,
+        totalStudents: studentsSnap.size,
+        totalJobs: jobsSnap.size,
+        activeMentorships: mentorshipCount,
       };
     } catch (error) {
       console.error('getGlobalStats error:', error);
@@ -128,7 +150,12 @@ class DataService {
   }
 
   async deleteJob(jobId: string): Promise<void> {
-    await deleteDoc(doc(db, 'jobs', jobId));
+    try {
+      await deleteDoc(doc(db, 'jobs', jobId));
+    } catch (error: any) {
+      console.error('deleteJob error:', error);
+      throw new Error(error?.message || 'Failed to delete job. You may not have admin permissions.');
+    }
   }
 
   // --- Events ---
@@ -158,11 +185,21 @@ class DataService {
   }
 
   async updateEventStatus(eventId: string, isApproved: boolean): Promise<void> {
-    await updateDoc(doc(db, 'events', eventId), { isApproved });
+    try {
+      await updateDoc(doc(db, 'events', eventId), { isApproved });
+    } catch (error: any) {
+      console.error('updateEventStatus error:', error);
+      throw new Error(error?.message || 'Failed to update event. You may not have admin permissions.');
+    }
   }
 
   async deleteEvent(eventId: string): Promise<void> {
-    await deleteDoc(doc(db, 'events', eventId));
+    try {
+      await deleteDoc(doc(db, 'events', eventId));
+    } catch (error: any) {
+      console.error('deleteEvent error:', error);
+      throw new Error(error?.message || 'Failed to delete event. You may not have admin permissions.');
+    }
   }
 
   // --- Connections ---
@@ -179,7 +216,12 @@ class DataService {
   // --- User Approval ---
 
   async updateUserApproval(uid: string, isApproved: boolean): Promise<void> {
-    await updateDoc(doc(db, 'users', uid), { isApproved });
+    try {
+      await updateDoc(doc(db, 'users', uid), { isApproved });
+    } catch (error: any) {
+      console.error('updateUserApproval error:', error);
+      throw new Error(error?.message || 'Failed to update user approval. You may not have admin permissions.');
+    }
   }
 }
 

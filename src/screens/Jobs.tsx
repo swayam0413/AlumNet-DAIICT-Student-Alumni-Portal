@@ -6,7 +6,7 @@ import { dataService, Job } from '../services/dataService';
 import { toast } from 'react-hot-toast';
 
 export default function Jobs() {
-  const { profile, isAlumni } = useAuth();
+  const { profile, isAlumni, isAdmin } = useAuth();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [showPostModal, setShowPostModal] = useState(false);
@@ -34,9 +34,10 @@ export default function Jobs() {
       await dataService.postJob({
         ...newJob,
         posted_by: profile.id,
+        posted_by_name: profile.name,
         status: 'open',
       });
-      toast.success("Job posted successfully!");
+      toast.success("Job posted successfully! Visible to all users.");
       setShowPostModal(false);
       setNewJob({ title: '', company: '', location: '', description: '' });
       fetchJobs();
@@ -57,7 +58,7 @@ export default function Jobs() {
             Bridging the gap between DA-IICT's historic legacy and the frontiers of global industry.
           </p>
         </div>
-        {isAlumni && (
+        {(isAlumni || isAdmin) && (
           <button 
             onClick={() => setShowPostModal(true)}
             className="flex items-center gap-2 px-8 py-4 bg-primary text-on-primary rounded-2xl font-bold shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"

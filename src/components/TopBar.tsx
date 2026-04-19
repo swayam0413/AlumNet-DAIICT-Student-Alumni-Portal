@@ -16,18 +16,22 @@ export default function TopBar() {
           </NavLink>
           
           <nav className="hidden md:flex items-center gap-6 font-headline tracking-tight font-bold text-sm">
-            <NavLink to="/directory" className={({ isActive }) => 
+            <NavLink to="/" className={({ isActive }) => 
               isActive ? "text-orange-800 dark:text-orange-400 border-b-2 border-orange-800 dark:border-orange-400 pb-1" 
                        : "text-stone-600 dark:text-stone-400 font-medium hover:text-orange-700 transition-colors"
-            }>Directory</NavLink>
-            <NavLink to="/ai-assistant" className={({ isActive }) => 
-              isActive ? "text-orange-800 dark:text-orange-400 border-b-2 border-orange-800 dark:border-orange-400 pb-1" 
-                       : "text-stone-600 dark:text-stone-400 font-medium hover:text-orange-700 transition-colors"
-            }>AI Assistant</NavLink>
+            }>Dashboard</NavLink>
             <NavLink to="/jobs" className={({ isActive }) => 
               isActive ? "text-orange-800 dark:text-orange-400 border-b-2 border-orange-800 dark:border-orange-400 pb-1" 
                        : "text-stone-600 dark:text-stone-400 font-medium hover:text-orange-700 transition-colors"
             }>Jobs</NavLink>
+            <NavLink to="/profile" className={({ isActive }) => 
+              isActive ? "text-orange-800 dark:text-orange-400 border-b-2 border-orange-800 dark:border-orange-400 pb-1" 
+                       : "text-stone-600 dark:text-stone-400 font-medium hover:text-orange-700 transition-colors"
+            }>Profile</NavLink>
+            <NavLink to="/settings" className={({ isActive }) => 
+              isActive ? "text-orange-800 dark:text-orange-400 border-b-2 border-orange-800 dark:border-orange-400 pb-1" 
+                       : "text-stone-600 dark:text-stone-400 font-medium hover:text-orange-700 transition-colors"
+            }>Settings</NavLink>
             {isAdmin && (
               <NavLink to="/admin" className={({ isActive }) => 
                 isActive ? "text-primary border-b-2 border-primary pb-1" 

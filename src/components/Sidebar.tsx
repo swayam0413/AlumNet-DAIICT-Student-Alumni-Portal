@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, Share2, Bot, Settings, GraduationCap, LogOut, ShieldCheck, UserCircle } from 'lucide-react';
+import { LayoutDashboard, Briefcase, Settings, GraduationCap, LogOut, ShieldCheck, UserCircle } from 'lucide-react';
 import { authService } from '../services/authService';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-hot-toast';
@@ -11,8 +11,7 @@ export default function Sidebar() {
   
   const navItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
-    { icon: Users, label: 'Directory', path: '/directory' },
-    { icon: Bot, label: 'AI Assistant', path: '/ai-assistant' },
+    { icon: Briefcase, label: 'Jobs', path: '/jobs' },
     { icon: UserCircle, label: 'My Profile', path: '/profile' },
     { icon: ShieldCheck, label: 'Admin Console', path: '/admin', hidden: !isAdmin },
     { icon: Settings, label: 'Settings', path: '/settings' },

@@ -58,9 +58,9 @@ export default function Admin() {
       toast.success("Alumnus approved!");
       setPendingAlumni(prev => prev.filter(a => a.id !== uid));
       setAllUsers(prev => prev.map(u => u.id === uid ? { ...u, isApproved: true } : u));
-    } catch (error) {
+    } catch (error: any) {
       console.error("Approval error:", error);
-      toast.error("Failed to approve");
+      toast.error(error?.message || "Failed to approve. Check admin permissions.");
     }
   };
 
@@ -83,18 +83,20 @@ export default function Admin() {
       await dataService.deleteJob(jobId);
       toast.success("Job removed");
       setAllJobs(prev => prev.filter(j => j.id !== jobId));
-    } catch (error) {
-      toast.error("Failed to delete job");
+    } catch (error: any) {
+      console.error("Delete job error:", error);
+      toast.error(error?.message || "Failed to delete job. Check admin permissions.");
     }
   };
 
   const handleApproveEvent = async (eventId: string) => {
     try {
       await dataService.updateEventStatus(eventId, true);
-      toast.success("Event approved!");
+      toast.success("Event approved! It is now visible to all users.");
       setAllEvents(prev => prev.map(e => e.id === eventId ? { ...e, isApproved: true } : e));
-    } catch (error) {
-      toast.error("Failed to approve event");
+    } catch (error: any) {
+      console.error("Approve event error:", error);
+      toast.error(error?.message || "Failed to approve event. Check admin permissions.");
     }
   };
 
@@ -103,8 +105,9 @@ export default function Admin() {
       await dataService.deleteEvent(eventId);
       toast.success("Event removed");
       setAllEvents(prev => prev.filter(e => e.id !== eventId));
-    } catch (error) {
-      toast.error("Failed to delete event");
+    } catch (error: any) {
+      console.error("Delete event error:", error);
+      toast.error(error?.message || "Failed to delete event. Check admin permissions.");
     }
   };
 
