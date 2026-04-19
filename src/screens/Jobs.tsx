@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Briefcase, MapPin, Send, Plus, ArrowRight, Loader2, X } from 'lucide-react';
+import { Briefcase, MapPin, Send, Plus, ArrowRight, Loader2, X, UserPlus } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
 import { dataService, Job } from '../services/dataService';
 import { toast } from 'react-hot-toast';
+import ReferralModal from '../components/ReferralModal';
 
 export default function Jobs() {
   const { profile, isAlumni, isAdmin } = useAuth();
@@ -11,6 +12,7 @@ export default function Jobs() {
   const [loading, setLoading] = useState(true);
   const [showPostModal, setShowPostModal] = useState(false);
   const [newJob, setNewJob] = useState({ title: '', company: '', location: '', description: '' });
+  const [selectedJobForReferral, setSelectedJobForReferral] = useState<Job | null>(null);
 
   const fetchJobs = async () => {
     try {
@@ -99,6 +101,15 @@ export default function Jobs() {
                 >
                   Apply Now <ArrowRight className="w-4 h-4" />
                 </button>
+                {!isAlumni && !isAdmin && job.posted_by && (
+                  <button
+                    onClick={() => setSelectedJobForReferral(job)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary text-xs font-bold rounded-lg hover:bg-primary/20 transition-all"
+                  >
+                    <UserPlus className="w-3.5 h-3.5" />
+                    Request Referral
+                  </button>
+                )}
               </div>
             </div>
           )) : (
@@ -190,6 +201,15 @@ export default function Jobs() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Referral Modal */}
+      {selectedJobForReferral && (
+        <ReferralModal
+          isOpen={!!selectedJobForReferral}
+          onClose={() => setSelectedJobForReferral(null)}
+          job={selectedJobForReferral}
+        />
+      )}
     </div>
   );
 }

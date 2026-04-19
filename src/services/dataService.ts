@@ -33,6 +33,34 @@ export interface GlobalStats {
 }
 
 class DataService {
+  // --- Individual Lookups ---
+
+  async getUserById(uid: string): Promise<UserProfile | null> {
+    try {
+      const snap = await getDoc(doc(db, 'users', uid));
+      if (snap.exists()) {
+        return { id: snap.id, ...snap.data() } as UserProfile;
+      }
+      return null;
+    } catch (error) {
+      console.error('getUserById error:', error);
+      return null;
+    }
+  }
+
+  async getJobById(jobId: string): Promise<Job | null> {
+    try {
+      const snap = await getDoc(doc(db, 'jobs', jobId));
+      if (snap.exists()) {
+        return { id: snap.id, ...snap.data() } as Job;
+      }
+      return null;
+    } catch (error) {
+      console.error('getJobById error:', error);
+      return null;
+    }
+  }
+
   // --- Alumni / Users ---
 
   async getAlumni(filters?: {

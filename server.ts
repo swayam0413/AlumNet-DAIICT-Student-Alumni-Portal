@@ -104,6 +104,72 @@ Return ONLY valid JSON with these keys (use empty string or empty array if not f
     }
   });
 
+  // --- Smart Referral Generation ---
+  app.post('/api/ai/generate-referral', async (req, res) => {
+    try {
+      const { student, alumni, job, tone, customNote } = req.body;
+
+      if (!GROK_API_KEY) {
+        return res.status(500).json({ error: 'GROK_API_KEY not configured' });
+      }
+
+      const sharedContext: string[] = [];
+      if (student.department && alumni.department && student.department === alumni.department) {
+        sharedContext.push(`Both from ${student.department} department`);
+      }
+      if (student.skills && alumni.skills) {
+        const shared = student.skills.filter((s: string) => 
+          alumni.skills.some((a: string) => a.toLowerCase() === s.toLowerCase())
+        );
+        if (shared.length > 0) sharedContext.push(`Shared skills: ${shared.join(', ')}`);
+      }
+
+      const userPrompt = `Student Information:
+Name: ${student.name || 'Student'}
+Degree: ${student.department || 'Computer Science'}
+Graduation Year: ${student.graduation_year || 'Current'}
+Skills: ${(student.skills || []).join(', ') || 'Not specified'}
+Resume Summary: ${student.resume_summary || 'Not provided'}
+Career Goal: Working in ${job.company} as ${job.title}
+
+Alumni Information:
+Name: ${alumni.name || 'Alumni'}
+Role: ${alumni.job_role || alumni.role || 'Professional'}
+Company: ${alumni.company || job.company}
+Shared Background: ${sharedContext.length > 0 ? sharedContext.join('; ') : 'Same university (DA-IICT)'}
+
+Job Information:
+Job Title: ${job.title}
+Company: ${job.company}
+Location: ${job.location || 'Not specified'}
+Job Description Summary: ${job.description || 'Not provided'}
+
+Tone: ${tone || 'Professional'}
+${customNote ? `Additional context from student: ${customNote}` : ''}
+
+Generate a referral request message that:
+- Mentions shared background if available
+- Shows alignment with job requirements
+- Is polite and professional
+- Is under 180 words
+- Does not sound automated
+- Addresses the alumni by first name`;
+
+      const result = await callGrok([
+        {
+          role: 'system',
+          content: 'You are a professional career communication assistant helping students write personalized referral requests to alumni. The message must be respectful, concise, and tailored. Avoid generic language. Do not exaggerate. Return ONLY the referral message text, no additional commentary.',
+        },
+        { role: 'user', content: userPrompt },
+      ]);
+
+      res.json({ message: result });
+    } catch (error: any) {
+      console.error('Referral generation error:', error);
+      res.status(500).json({ error: error.message || 'Failed to generate referral' });
+    }
+  });
+
   // --- Vite Dev Server ---
   const vite = await createViteServer({
     server: { middlewareMode: true },
