@@ -54,7 +54,7 @@ service cloud.firestore {
         (isOwner(userId) && 
          incoming().role == existing().role &&
          incoming().isApproved == existing().isApproved && 
-         incoming().diff(existing()).affectedKeys().hasOnly(['name', 'graduation_year', 'department', 'company', 'job_role', 'skills', 'profile_image', 'resume_summary', 'resume_parsed_at', 'updatedAt', 'bio', 'id', 'email']))
+         incoming().diff(existing()).affectedKeys().hasOnly(['name', 'graduation_year', 'department', 'company', 'job_role', 'skills', 'profile_image', 'resume_summary', 'resume_parsed_at', 'updatedAt', 'bio', 'id', 'email', 'emailNotifications', 'pushNotifications', 'profileVisibility']))
       );
 
       allow delete: if isAdmin();
@@ -113,12 +113,12 @@ service cloud.firestore {
 
       allow read: if isSignedIn();
       
-      allow create: if isSignedIn() && isOwner(incoming().posted_by) && 
-                    getUserRole(request.auth.uid) == 'alumni' && isValidJob(incoming());
+      // All authenticated users (student, alumni, admin) can post jobs
+      allow create: if isSignedIn() && isOwner(incoming().posted_by) && isValidJob(incoming());
 
       allow update: if isSignedIn() && (isAdmin() || isOwner(existing().posted_by)) && 
                     isValidJob(incoming()) &&
-                    incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'location', 'company', 'status']);
+                    incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'location', 'company', 'status', 'domain', 'apply_url', 'requirements', 'posted_by_name', 'posted_by_role']);
       
       allow delete: if isSignedIn() && (isAdmin() || isOwner(existing().posted_by));
     }

@@ -19,8 +19,12 @@ export interface Job {
   company: string;
   location: string;
   description: string;
+  domain?: string;
+  apply_url?: string;
+  requirements?: string;
   posted_by: string;
   posted_by_name?: string;
+  posted_by_role?: string;
   status: 'open' | 'closed';
   createdAt?: string;
 }
@@ -93,6 +97,17 @@ class DataService {
       return snap.docs.map(d => ({ id: d.id, ...d.data() } as UserProfile));
     } catch (error) {
       console.error('getAlumni error:', error);
+      return [];
+    }
+  }
+
+  async getAlumniByCompany(company: string): Promise<UserProfile[]> {
+    try {
+      const q = query(collection(db, 'users'), where('company', '==', company), where('isApproved', '==', true));
+      const snap = await getDocs(q);
+      return snap.docs.map(d => ({ id: d.id, ...d.data() } as UserProfile));
+    } catch (error) {
+      console.error('getAlumniByCompany error:', error);
       return [];
     }
   }
