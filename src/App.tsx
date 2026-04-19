@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Layout from './components/Layout';
 import Home from './screens/Home';
@@ -10,8 +10,7 @@ import Login from './screens/Login';
 import Settings from './screens/Settings';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, profile, loading } = useAuth();
-  const { pathname } = useLocation();
+  const { user, loading } = useAuth();
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-[#fdfaf6]">
@@ -20,12 +19,6 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   );
   
   if (!user) return <Navigate to="/login" replace />;
-
-  // Force onboarding if profile is missing (except on profile page itself)
-  const isProfilePage = pathname.startsWith('/profile');
-  if (!profile && !isProfilePage) {
-    return <Navigate to="/profile" replace />;
-  }
 
   return <>{children}</>;
 };
