@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { Users, CheckCircle, XCircle, ShieldCheck, Search, Loader2, Calendar, Briefcase, Trash2, Clock, MapPin, Mail, User, Info, Tag, Video, Quote, ArrowRight } from 'lucide-react';
+import { Users, CheckCircle, XCircle, ShieldCheck, Search, Loader2, Calendar, Briefcase, Trash2, Clock, MapPin, Mail, User, Info, Tag, Video, Quote, ArrowRight, Plus } from 'lucide-react';
 import { motion } from 'motion/react';
 import { dataService } from '../services/dataService';
 import { UserProfile } from '../services/authService';
 import { toast } from 'react-hot-toast';
+import CreateEventModal from '../components/CreateEventModal';
+import { useAuth } from '../context/AuthContext';
 
 export default function Admin() {
+  const { user, profile } = useAuth();
   const [pendingAlumni, setPendingAlumni] = useState<UserProfile[]>([]);
   const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
   const [stats, setStats] = useState({
@@ -19,6 +22,9 @@ export default function Admin() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'approvals' | 'jobs' | 'events' | 'users'>('dashboard');
   const [userSearch, setUserSearch] = useState('');
+  const [isEventModalOpen, setIsEventModalOpen] = useState(false);
+  const [showAddJob, setShowAddJob] = useState(false);
+  const [newJob, setNewJob] = useState({ title: '', company: '', location: '', description: '' });
 
   const fetchData = async () => {
     setLoading(true);
@@ -421,10 +427,47 @@ export default function Admin() {
 
         {activeTab === 'jobs' && (
           <section className="space-y-6">
-            <div className="flex items-center gap-3 mb-6">
-              <Briefcase className="text-primary w-6 h-6" />
-              <h2 className="text-2xl font-headline font-bold text-on-surface">Job Moderation</h2>
+            <div className="flex items-center justify-between gap-3 mb-6">
+              <div className="flex items-center gap-3">
+                <Briefcase className="text-primary w-6 h-6" />
+                <h2 className="text-2xl font-headline font-bold text-on-surface">Job Moderation</h2>
+              </div>
+              <button
+                onClick={() => setShowAddJob(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl font-bold text-sm hover:bg-orange-700 transition-all"
+              >
+                <Plus className="w-4 h-4" /> Add Job
+              </button>
             </div>
+
+            {/* Inline Add Job Form */}
+            {showAddJob && (
+              <div className="bg-stone-50 rounded-2xl p-6 mb-6 border border-stone-200">
+                <h4 className="font-bold text-sm mb-4">Quick Add Job</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                  <input placeholder="Job Title" value={newJob.title} onChange={(e) => setNewJob({...newJob, title: e.target.value})} className="px-4 py-3 bg-white border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 outline-none" />
+                  <input placeholder="Company" value={newJob.company} onChange={(e) => setNewJob({...newJob, company: e.target.value})} className="px-4 py-3 bg-white border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 outline-none" />
+                  <input placeholder="Location" value={newJob.location} onChange={(e) => setNewJob({...newJob, location: e.target.value})} className="px-4 py-3 bg-white border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 outline-none" />
+                  <textarea placeholder="Description" value={newJob.description} onChange={(e) => setNewJob({...newJob, description: e.target.value})} className="px-4 py-3 bg-white border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 outline-none resize-none" rows={2} />
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={async () => {
+                      if (!newJob.title || !newJob.company || !user) return;
+                      try {
+                        await dataService.postJob({ title: newJob.title, company: newJob.company, location: newJob.location, description: newJob.description, posted_by: user.uid, posted_by_name: profile?.name || 'Admin', posted_by_role: 'admin', status: 'open' });
+                        toast.success('Job added!');
+                        setNewJob({ title: '', company: '', location: '', description: '' });
+                        setShowAddJob(false);
+                        fetchData();
+                      } catch (e: any) { toast.error(e.message || 'Failed'); }
+                    }}
+                    className="px-6 py-2 bg-primary text-white rounded-xl font-bold text-sm"
+                  >Create</button>
+                  <button onClick={() => setShowAddJob(false)} className="px-6 py-2 bg-stone-200 text-stone-600 rounded-xl font-bold text-sm">Cancel</button>
+                </div>
+              </div>
+            )}
 
             <div className="bg-surface-container-lowest rounded-3xl overflow-hidden border border-outline-variant/10">
               <table className="w-full text-left">
@@ -462,9 +505,17 @@ export default function Admin() {
 
         {activeTab === 'events' && (
           <section className="space-y-6">
-            <div className="flex items-center gap-3 mb-6">
-              <Calendar className="text-primary w-6 h-6" />
-              <h2 className="text-2xl font-headline font-bold text-on-surface">Event Requests</h2>
+            <div className="flex items-center justify-between gap-3 mb-6">
+              <div className="flex items-center gap-3">
+                <Calendar className="text-primary w-6 h-6" />
+                <h2 className="text-2xl font-headline font-bold text-on-surface">Event Management</h2>
+              </div>
+              <button
+                onClick={() => setIsEventModalOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl font-bold text-sm hover:bg-orange-700 transition-all"
+              >
+                <Plus className="w-4 h-4" /> Add Event
+              </button>
             </div>
 
             <div className="grid grid-cols-1 gap-6">
@@ -570,6 +621,12 @@ export default function Admin() {
           </section>
         )}
       </div>
+
+      <CreateEventModal
+        isOpen={isEventModalOpen}
+        onClose={() => setIsEventModalOpen(false)}
+        onSuccess={() => { fetchData(); }}
+      />
     </div>
   );
 }

@@ -84,7 +84,7 @@ export default function ReferralModal({ isOpen, onClose, job }: ReferralModalPro
         setGeneratedMessage(result);
         toast.success('Referral message generated!');
       } else {
-        toast.error('Failed to generate. Check if GROK_API_KEY is set.');
+        toast.error('Failed to generate. Check if GEMINI_API_KEY is set.');
       }
     } catch (error) {
       toast.error('Generation failed. Try again.');

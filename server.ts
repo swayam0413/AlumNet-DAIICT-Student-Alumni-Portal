@@ -5,70 +5,136 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
-const GROK_API_KEY = process.env.GROK_API_KEY || '';
-const GROK_API_URL = 'https://api.x.ai/v1/chat/completions';
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 
-async function callGrok(messages: { role: string; content: string }[]): Promise<string> {
-  const response = await fetch(GROK_API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${GROK_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: 'grok-3-mini-fast',
-      messages,
-      temperature: 0.7,
-    }),
+async function callGemini(prompt: string, systemInstruction?: string): Promise<string> {
+  const { GoogleGenAI } = await import('@google/genai');
+  const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+
+  const result = await ai.models.generateContent({
+    model: 'gemma-3-27b-it',
+    contents: [
+      {
+        role: 'user',
+        parts: [{ text: systemInstruction ? `${systemInstruction}\n\n${prompt}` : prompt }],
+      },
+    ],
   });
 
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`Grok API error (${response.status}): ${errText}`);
-  }
-
-  const data = await response.json();
-  return data.choices?.[0]?.message?.content || 'No response generated.';
+  return result.text || 'No response generated.';
 }
 
 async function startServer() {
   const app = express();
   app.use(express.json({ limit: '10mb' }));
 
-  // --- AI API routes (powered by Grok) ---
+  const FIREBASE_API_KEY = 'AIzaSyCL6eB6KyzJEKN4-fxWMO2ZFDFJvScI5gI';
+
+  // --- Auth cleanup endpoint (uses Firebase REST API, no Admin SDK needed) ---
+  app.post('/api/auth/delete-stale-user', async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
+      
+      // Try signing in via Firebase REST API
+      const signInRes = await fetch(
+        `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${FIREBASE_API_KEY}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password, returnSecureToken: true }),
+        }
+      );
+      
+      if (!signInRes.ok) {
+        // Can't sign in with this password — send password reset instead
+        await fetch(
+          `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${FIREBASE_API_KEY}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ requestType: 'PASSWORD_RESET', email }),
+          }
+        );
+        return res.status(403).json({ error: 'Password reset email sent. Check your inbox, reset password, then Sign In.' });
+      }
+
+      const signInData = await signInRes.json();
+      const idToken = signInData.idToken;
+
+      // Delete the account using the idToken
+      const deleteRes = await fetch(
+        `https://identitytoolkit.googleapis.com/v1/accounts:delete?key=${FIREBASE_API_KEY}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ idToken }),
+        }
+      );
+
+      if (deleteRes.ok) {
+        res.json({ success: true, message: 'Old account deleted. You can now re-register.' });
+      } else {
+        res.status(500).json({ error: 'Failed to delete old account.' });
+      }
+    } catch (err: any) {
+      console.error('Delete stale user error:', err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // --- AI API routes (powered by Gemini) ---
   app.post('/api/ai/parse-resume', async (req, res) => {
     try {
       const { fileData, mimeType } = req.body;
 
-      if (!GROK_API_KEY) {
-        return res.status(500).json({ error: 'GROK_API_KEY not configured' });
+      if (!GEMINI_API_KEY) {
+        return res.status(500).json({ error: 'GEMINI_API_KEY not configured' });
       }
 
-      // For resume parsing, we send the base64 data as text context
-      // Grok doesn't support inline file data like Gemini, so we describe what to extract
-      const prompt = `You are a resume parser. The user has uploaded a resume file (${mimeType}). 
-The base64-encoded content is provided below. Parse whatever text you can identify and extract structured information.
+      const { GoogleGenAI } = await import('@google/genai');
+      const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 
-Base64 content (first 2000 chars): ${fileData.substring(0, 2000)}
-
-Return ONLY valid JSON with these keys (use empty string or empty array if not found):
+      const result = await ai.models.generateContent({
+        model: 'gemma-3-27b-it',
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              {
+                inlineData: {
+                  mimeType: mimeType || 'application/pdf',
+                  data: fileData,
+                },
+              },
+              {
+                text: `Analyze this resume and extract the following information. Return ONLY valid JSON with these keys:
 {
   "name": "Full Name",
   "job_role": "Current or most recent job title",
   "company": "Current or most recent company",
-  "skills": ["skill1", "skill2"],
+  "skills": ["skill1", "skill2", ...],
   "graduation_year": 2024,
   "department": "Department or field of study",
-  "summary": "A 2-3 sentence professional summary"
-}`;
+  "summary": "A 2-3 sentence professional summary",
+  "ai_introduction": "Write a compelling 3-4 sentence professional introduction about this person based on their resume. Write in third person. Highlight their expertise, experience level, and what makes them stand out.",
+  "ai_projects": [
+    {
+      "title": "Project Name",
+      "description": "1-2 sentence description of the project, technologies used, and impact"
+    }
+  ]
+}
 
-      const result = await callGrok([
-        { role: 'system', content: 'You are a helpful resume parser. Always return valid JSON only.' },
-        { role: 'user', content: prompt }
-      ]);
+For ai_projects, extract up to 5 most notable projects or work experiences mentioned in the resume. If no projects are found, return an empty array.`,
+              },
+            ],
+          },
+        ],
+      });
 
-      // Extract JSON from potential markdown code blocks
-      const jsonMatch = result.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, result];
+      const text = result.text || '';
+      const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, text];
       const parsed = JSON.parse(jsonMatch[1]!.trim());
 
       res.json(parsed);
@@ -82,21 +148,18 @@ Return ONLY valid JSON with these keys (use empty string or empty array if not f
     try {
       const { query, context } = req.body;
 
-      if (!GROK_API_KEY) {
-        return res.status(500).json({ error: 'GROK_API_KEY not configured' });
+      if (!GEMINI_API_KEY) {
+        return res.status(500).json({ error: 'GEMINI_API_KEY not configured' });
       }
 
-      const result = await callGrok([
-        {
-          role: 'system',
-          content: `You are a career advisor for DA-IICT alumni and students. You help with career guidance, networking tips, resume improvement, and job search strategies. Be concise, actionable, and encouraging.`
-        },
-        {
-          role: 'user',
-          content: `Context about the alumni network: ${context}\n\nUser question: ${query}`
-        }
-      ]);
+      const prompt = `You are a career advisor for DA-IICT alumni and students. 
+Here is some context about the alumni network: ${context}
 
+User question: ${query}
+
+Provide helpful, actionable career advice. Keep your response concise and well-structured.`;
+
+      const result = await callGemini(prompt);
       res.json({ response: result });
     } catch (error: any) {
       console.error('Career advice error:', error);
@@ -109,8 +172,8 @@ Return ONLY valid JSON with these keys (use empty string or empty array if not f
     try {
       const { student, alumni, job, tone, customNote } = req.body;
 
-      if (!GROK_API_KEY) {
-        return res.status(500).json({ error: 'GROK_API_KEY not configured' });
+      if (!GEMINI_API_KEY) {
+        return res.status(500).json({ error: 'GEMINI_API_KEY not configured' });
       }
 
       const sharedContext: string[] = [];
@@ -118,11 +181,13 @@ Return ONLY valid JSON with these keys (use empty string or empty array if not f
         sharedContext.push(`Both from ${student.department} department`);
       }
       if (student.skills && alumni.skills) {
-        const shared = student.skills.filter((s: string) => 
+        const shared = student.skills.filter((s: string) =>
           alumni.skills.some((a: string) => a.toLowerCase() === s.toLowerCase())
         );
         if (shared.length > 0) sharedContext.push(`Shared skills: ${shared.join(', ')}`);
       }
+
+      const systemInstruction = 'You are a professional career communication assistant helping students write personalized referral requests to alumni. The message must be respectful, concise, and tailored. Avoid generic language. Do not exaggerate. Return ONLY the referral message text, no additional commentary.';
 
       const userPrompt = `Student Information:
 Name: ${student.name || 'Student'}
@@ -155,18 +220,73 @@ Generate a referral request message that:
 - Does not sound automated
 - Addresses the alumni by first name`;
 
-      const result = await callGrok([
-        {
-          role: 'system',
-          content: 'You are a professional career communication assistant helping students write personalized referral requests to alumni. The message must be respectful, concise, and tailored. Avoid generic language. Do not exaggerate. Return ONLY the referral message text, no additional commentary.',
-        },
-        { role: 'user', content: userPrompt },
-      ]);
-
+      const result = await callGemini(userPrompt, systemInstruction);
       res.json({ message: result });
     } catch (error: any) {
       console.error('Referral generation error:', error);
       res.status(500).json({ error: error.message || 'Failed to generate referral' });
+    }
+  });
+
+  // --- AI Networking Radar ---
+  app.post('/api/ai/networking-radar', async (req, res) => {
+    try {
+      const { events, studentProfile } = req.body;
+
+      if (!GEMINI_API_KEY) {
+        return res.status(500).json({ error: 'GEMINI_API_KEY not configured' });
+      }
+
+      const systemInstruction = `You are an AI networking advisor for DA-IICT university's alumni platform called AlumConnect. Your job is to analyze recent alumni activity and generate proactive, actionable networking insights for students.
+
+Rules:
+- Generate exactly 3-5 JSON insight objects
+- Each insight must be specific and actionable
+- Use professional but engaging language
+- Include emojis for visual appeal
+- Focus on opportunities relevant to the student's profile
+- Return ONLY a valid JSON array, no other text`;
+
+      const prompt = `Student Profile:
+Name: ${studentProfile.name || 'Student'}
+Department: ${studentProfile.department || 'Not specified'}
+Skills: ${(studentProfile.skills || []).join(', ') || 'Not specified'}
+Graduation Year: ${studentProfile.graduation_year || 'Current'}
+Career Interests: ${studentProfile.job_role || 'Not specified'}
+
+Recent Alumni Network Activity (last 14 days):
+${JSON.stringify(events, null, 2)}
+
+Based on this data, generate personalized networking insights. Return a JSON array where each item has:
+{
+  "id": "unique_string",
+  "icon": "🔔|🚀|💼|📈|🎯|🤝|⭐",
+  "title": "Short headline",
+  "message": "2-3 sentence actionable insight",
+  "type": "JOB_CHANGE|PROMOTION|HIRING_TREND|SKILL_TREND|CONNECTION_OPPORTUNITY",
+  "priority": "high|medium|low",
+  "actionLabel": "Connect Now|View Alumni|Explore Jobs|Learn More",
+  "relatedCompany": "company name or null",
+  "relatedIndustry": "industry or null"
+}`;
+
+      const result = await callGemini(prompt, systemInstruction);
+      
+      // Parse JSON from response
+      const jsonMatch = result.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, result];
+      let insights;
+      try {
+        insights = JSON.parse(jsonMatch[1]!.trim());
+      } catch {
+        // Try to find JSON array in plain text
+        const arrayMatch = result.match(/\[[\s\S]*\]/);
+        insights = arrayMatch ? JSON.parse(arrayMatch[0]) : [];
+      }
+
+      res.json({ insights });
+    } catch (error: any) {
+      console.error('Networking radar error:', error);
+      res.status(500).json({ error: error.message || 'Failed to generate radar insights' });
     }
   });
 

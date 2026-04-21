@@ -1,8 +1,8 @@
 import React from 'react';
-import { Search, Bell, User } from 'lucide-react';
+import { Search, User } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { toast } from 'react-hot-toast';
+import NotificationBell from './NotificationBell';
 
 export default function TopBar() {
   const { profile, isAdmin, loading } = useAuth();
@@ -14,33 +14,6 @@ export default function TopBar() {
           <NavLink to="/" className="md:hidden flex items-center gap-2">
              <span className="text-xl font-black text-orange-900 dark:text-orange-500 tracking-tighter font-headline">AlumConnect</span>
           </NavLink>
-          
-          <nav className="hidden md:flex items-center gap-6 font-headline tracking-tight font-bold text-sm">
-            <NavLink to="/" className={({ isActive }) => 
-              isActive ? "text-orange-800 dark:text-orange-400 border-b-2 border-orange-800 dark:border-orange-400 pb-1" 
-                       : "text-stone-600 dark:text-stone-400 font-medium hover:text-orange-700 transition-colors"
-            }>Dashboard</NavLink>
-            <NavLink to="/jobs" className={({ isActive }) => 
-              isActive ? "text-orange-800 dark:text-orange-400 border-b-2 border-orange-800 dark:border-orange-400 pb-1" 
-                       : "text-stone-600 dark:text-stone-400 font-medium hover:text-orange-700 transition-colors"
-            }>Jobs</NavLink>
-            <NavLink to="/profile" className={({ isActive }) => 
-              isActive ? "text-orange-800 dark:text-orange-400 border-b-2 border-orange-800 dark:border-orange-400 pb-1" 
-                       : "text-stone-600 dark:text-stone-400 font-medium hover:text-orange-700 transition-colors"
-            }>Profile</NavLink>
-            <NavLink to="/settings" className={({ isActive }) => 
-              isActive ? "text-orange-800 dark:text-orange-400 border-b-2 border-orange-800 dark:border-orange-400 pb-1" 
-                       : "text-stone-600 dark:text-stone-400 font-medium hover:text-orange-700 transition-colors"
-            }>Settings</NavLink>
-            {isAdmin && (
-              <NavLink to="/admin" className={({ isActive }) => 
-                isActive ? "text-primary border-b-2 border-primary pb-1" 
-                         : "text-stone-600 dark:text-stone-400 font-medium hover:text-primary transition-colors flex items-center gap-1"
-              }>
-                Admin
-              </NavLink>
-            )}
-          </nav>
         </div>
 
         <div className="flex items-center gap-6">
@@ -59,13 +32,7 @@ export default function TopBar() {
           </div>
 
           <div className="flex items-center gap-4">
-            <button 
-              onClick={() => toast.success("No new notifications")}
-              className="text-stone-600 dark:text-stone-400 hover:text-primary transition-colors relative p-2"
-            >
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full"></span>
-            </button>
+            <NotificationBell />
             <NavLink to="/profile" className="flex items-center gap-3 group">
               <div className="text-right hidden sm:block">
                 <p className="text-xs font-bold text-on-surface line-clamp-1">

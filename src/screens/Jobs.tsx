@@ -1,14 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { Briefcase, MapPin, Send, Plus, ArrowRight, Loader2, X, UserPlus, ExternalLink, Users, Globe, Tag, FileText, Link2, Building2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Briefcase, MapPin, Send, Plus, ArrowRight, Loader2, X, UserPlus, ExternalLink, Users, Globe, Tag, FileText, Link2, Building2, ChevronDown, ChevronUp, MessageCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
 import { dataService, Job } from '../services/dataService';
 import { UserProfile } from '../services/authService';
 import { toast } from 'react-hot-toast';
 import ReferralModal from '../components/ReferralModal';
+import ChatModal from '../components/ChatModal';
+import { useNavigate } from 'react-router-dom';
 
 export default function Jobs() {
   const { user, profile, isAlumni, isAdmin, isStudent } = useAuth();
+  const navigate = useNavigate();
+  const [chatTarget, setChatTarget] = useState<{ id: string; name: string } | null>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [showPostModal, setShowPostModal] = useState(false);
@@ -231,10 +235,17 @@ export default function Jobs() {
                                   </div>
                                 )}
                               </div>
-                              <div className="min-w-0 flex-1">
-                                <p className="text-sm font-bold text-on-surface truncate">{a.name}</p>
+                              <div className="min-w-0 flex-1 cursor-pointer" onClick={() => navigate(`/profile/${a.id}`)}>
+                                <p className="text-sm font-bold text-on-surface truncate hover:text-primary transition-colors">{a.name}</p>
                                 <p className="text-[10px] text-stone-400 font-medium truncate">{a.job_role || a.role}</p>
                               </div>
+                              <button
+                                onClick={() => setChatTarget({ id: a.id, name: a.name })}
+                                className="p-1.5 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-all flex-shrink-0"
+                                title="Send Message"
+                              >
+                                <MessageCircle className="w-3.5 h-3.5" />
+                              </button>
                             </div>
                           ))}
                         </div>
@@ -410,6 +421,16 @@ export default function Jobs() {
           isOpen={!!selectedJobForReferral}
           onClose={() => setSelectedJobForReferral(null)}
           job={selectedJobForReferral}
+        />
+      )}
+
+      {/* Chat Modal */}
+      {chatTarget && (
+        <ChatModal
+          isOpen={!!chatTarget}
+          onClose={() => setChatTarget(null)}
+          recipientId={chatTarget.id}
+          recipientName={chatTarget.name}
         />
       )}
     </div>

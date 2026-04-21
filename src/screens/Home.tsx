@@ -1,15 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowRight, Network, Eye, BookOpen, Briefcase, Send, MapPin, Video, Loader2, Calendar, ShieldCheck, Mail, User } from 'lucide-react';
+import { ArrowRight, Network, Eye, BookOpen, Briefcase, Send, MapPin, Video, Loader2, Calendar, ShieldCheck, Mail, User, MessageCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
 import { dataService } from '../services/dataService';
 import { toast } from 'react-hot-toast';
 import CreateEventModal from '../components/CreateEventModal';
-import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import ChatModal from '../components/ChatModal';
+import NetworkingRadar from '../components/NetworkingRadar';
+import { useNavigate } from 'react-router-dom';
 
 export default function Home() {
   const { profile, isAdmin } = useAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState([
     { label: 'Total Alumni', value: '0', icon: Network, id: 'alumni' },
     { label: 'Total Students', value: '0', icon: Eye, id: 'students' },
@@ -20,31 +22,16 @@ export default function Home() {
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
-
-  useEffect(() => {
-    // Real-time events listener
-    const q = query(
-      collection(db, 'events'), 
-      where('isApproved', '==', true)
-    );
-    
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const eventsData = snapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) }));
-      // Client-side sort to avoid index errors
-      const sortedEvents = eventsData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-      setEvents(sortedEvents);
-    });
-
-    return () => unsubscribe();
-  }, []);
+  const [chatTarget, setChatTarget] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const [globalStats, alumni] = await Promise.all([
+        const [globalStats, upcomingEvents] = await Promise.all([
           dataService.getGlobalStats(),
-          dataService.getAlumni(),
+          dataService.getUpcomingEvents(),
         ]);
+
         if (globalStats) {
           setStats([
             { label: 'Total Alumni', value: globalStats.totalAlumni.toString(), icon: Network, id: 'alumni' },
@@ -54,8 +41,21 @@ export default function Home() {
           ]);
         }
 
-        if (alumni) {
-          setRecommendedAlumni(alumni.slice(0, 2));
+        setEvents(upcomingEvents || []);
+
+        // Get recommended alumni based on profile matching
+        if (profile) {
+          const recommended = await dataService.getRecommendedAlumni(profile);
+          setRecommendedAlumni(recommended.length > 0 ? recommended : []);
+
+          // If no smart recommendations, fall back to any alumni
+          if (recommended.length === 0) {
+            const alumni = await dataService.getAlumni();
+            setRecommendedAlumni(alumni.slice(0, 4));
+          }
+        } else {
+          const alumni = await dataService.getAlumni();
+          setRecommendedAlumni(alumni.slice(0, 4));
         }
       } catch (error) {
         console.error("Home Data Fetch Error", error);
@@ -65,7 +65,7 @@ export default function Home() {
     }
 
     fetchData();
-  }, []);
+  }, [profile]);
 
   const handleConnect = async (alumniId: string) => {
     if (!profile) return;
@@ -103,7 +103,7 @@ export default function Home() {
             </div>
           </div>
           <button 
-            onClick={() => window.location.href = '/admin'}
+            onClick={() => navigate('/admin')}
             className="w-full md:w-auto px-8 py-4 bg-primary text-white rounded-2xl font-black shadow-lg shadow-primary/20 hover:scale-105 transition-all text-sm uppercase tracking-widest active:scale-95"
           >
             Launch Console
@@ -113,17 +113,17 @@ export default function Home() {
 
       {/* Welcome Banner */}
       <section className="relative overflow-hidden rounded-[2rem] bg-stone-900 text-white p-12 min-h-[320px] flex flex-col justify-center">
-        <div className="absolute inset-0 opacity-40">
+        <div className="absolute inset-0">
           <img 
-            alt="Alumni background" 
+            alt="Campus background" 
             className="w-full h-full object-cover"
-            src="https://picsum.photos/seed/arch/1200/400?blur=2" 
+            src="/images/home_bg.png" 
           />
+          <div className="absolute inset-0 bg-gradient-to-r from-stone-950 via-stone-950/80 to-transparent"></div>
         </div>
-        <div className="absolute inset-0 bg-gradient-to-r from-stone-950 via-stone-950/80 to-transparent"></div>
         <div className="relative z-10 max-w-2xl">
           <span className="inline-block px-3 py-1 rounded-full bg-primary-container text-on-primary-container text-[10px] font-bold uppercase tracking-widest mb-6">
-            {profile?.graduation_year ? `Class of ${profile.graduation_year}` : profile?.role.toUpperCase()}
+            {profile?.graduation_year ? `Class of ${profile.graduation_year}` : profile?.role?.toUpperCase() || 'MEMBER'}
           </span>
           <h2 className="text-5xl font-headline font-black mb-4 tracking-tighter leading-tight">
             Welcome home, <span className="text-primary-container">{profile?.name?.split(' ')[0] || 'Friend'}.</span>
@@ -155,28 +155,31 @@ export default function Home() {
         ))}
       </section>
 
+      {/* AI Networking Radar */}
+      <NetworkingRadar />
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
         {/* Recommended Alumni */}
         <div className="lg:col-span-2 space-y-8">
           <div className="flex justify-between items-end">
             <div>
               <h2 className="text-3xl font-headline font-black tracking-tight text-orange-900">Recommended Alumni</h2>
-              <p className="text-stone-500 font-medium font-body">Curated based on your interests and industry.</p>
+              <p className="text-stone-500 font-medium font-body">Curated based on your department, skills & interests.</p>
             </div>
-            <button 
-              onClick={() => window.location.href = '/directory'}
-              className="text-primary font-bold text-sm hover:underline flex items-center gap-1 font-headline"
-            >
-              View all <ArrowRight className="w-4 h-4" />
-            </button>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {recommendedAlumni.length > 0 ? recommendedAlumni.map((alumnus) => (
               <div key={alumnus.id} className="bg-surface-container-lowest p-6 rounded-2xl shadow-[0_12px_40px_rgba(138,114,100,0.08)] border border-outline-variant/10">
                 <div className="flex items-center gap-4 mb-6">
-                  <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-inner">
-                    <img alt={alumnus.name} src={alumnus.profile_image} className="w-full h-full object-cover" />
+                  <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-inner bg-stone-100">
+                    {alumnus.profile_image ? (
+                      <img alt={alumnus.name} src={alumnus.profile_image} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-stone-400">
+                        <User className="w-8 h-8" />
+                      </div>
+                    )}
                   </div>
                   <div>
                     <h4 className="font-headline font-bold text-lg text-on-surface">{alumnus.name}</h4>
@@ -184,8 +187,8 @@ export default function Home() {
                     <p className="text-[11px] text-stone-400 font-semibold uppercase">{alumnus.company || 'DA-IICT'} • Batch of {alumnus.graduation_year || 'Unknown'}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 mb-6">
-                  {alumnus.skills?.slice(0, 3).map(tag => (
+                <div className="flex items-center gap-2 mb-6 flex-wrap">
+                  {alumnus.skills?.slice(0, 3).map((tag: string) => (
                     <span key={tag} className="px-2 py-1 bg-surface-container rounded text-[10px] font-bold text-stone-600 uppercase">
                       {tag}
                     </span>
@@ -193,17 +196,26 @@ export default function Home() {
                 </div>
                 <div className="flex flex-col gap-2">
                   <button 
-                    onClick={() => window.location.href = `/profile/${alumnus.id}`}
+                    onClick={() => navigate(`/profile/${alumnus.id}`)}
                     className="w-full py-2 text-stone-400 font-bold text-[10px] uppercase tracking-widest hover:text-primary transition-all border border-transparent hover:border-primary/20 rounded-lg text-center"
                   >
-                    View Biography
+                    View Profile
                   </button>
-                  <button 
-                    onClick={() => handleConnect(alumnus.id)}
-                    className="w-full py-3 bg-stone-900 text-white rounded-xl font-bold text-sm hover:bg-primary transition-all flex items-center justify-center gap-2 group"
-                  >
-                    Connect <Send className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                  </button>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => handleConnect(alumnus.id)}
+                      className="flex-1 py-3 bg-stone-900 text-white rounded-xl font-bold text-sm hover:bg-primary transition-all flex items-center justify-center gap-2 group"
+                    >
+                      Connect <Send className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    </button>
+                    <button
+                      onClick={() => setChatTarget({ id: alumnus.id, name: alumnus.name })}
+                      className="py-3 px-4 bg-primary/10 text-primary rounded-xl font-bold text-sm hover:bg-primary/20 transition-all"
+                      title="Send Message"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             )) : (
@@ -217,24 +229,25 @@ export default function Home() {
         {/* Upcoming Events */}
         <div className="space-y-8">
           <div>
-            <h2 className="text-3xl font-headline font-black tracking-tight text-orange-900">Events</h2>
+            <h2 className="text-3xl font-headline font-black tracking-tight text-orange-900">Upcoming Events</h2>
             <p className="text-stone-500 font-medium font-body">Mark your academic calendar.</p>
           </div>
           
           <div className="space-y-4">
-            {events.length > 0 ? events.map((event) => (
+            {events.length > 0 ? events.slice(0, 5).map((event) => (
               <div key={event.id} className="bg-surface-container-low p-4 rounded-2xl border-l-4 border-primary hover:bg-white transition-colors cursor-pointer group">
                 <div className="flex gap-4">
                   <div className="flex flex-col items-center justify-center bg-white px-3 py-2 rounded-xl shadow-sm min-w-[60px]">
-                    <span className="text-[10px] font-black text-stone-400 uppercase">{event.month || 'TBD'}</span>
-                    <span className="text-xl font-headline font-black text-on-surface leading-none">{event.day || '--'}</span>
+                    <span className="text-[10px] font-black text-stone-400 uppercase">{event.month || new Date(event.date).toLocaleString('default', { month: 'short' })}</span>
+                    <span className="text-xl font-headline font-black text-on-surface leading-none">{event.day || new Date(event.date).getDate()}</span>
                   </div>
                   <div className="flex-1">
                     <h5 className="font-bold text-on-surface group-hover:text-primary transition-colors leading-tight mb-1">{event.title}</h5>
                     <p className="text-[11px] font-semibold text-stone-400 uppercase flex items-center gap-1">
-                      {event.location?.includes('Virtual') ? <Video className="w-3 h-3" /> : <MapPin className="w-3 h-3" />}
+                      {event.isVirtual || event.location?.includes('Virtual') ? <Video className="w-3 h-3" /> : <MapPin className="w-3 h-3" />}
                       {event.location}
                     </p>
+                    <p className="text-[10px] text-stone-300 mt-1">{event.time}</p>
                   </div>
                 </div>
               </div>
@@ -266,6 +279,15 @@ export default function Home() {
         onClose={() => setIsEventModalOpen(false)}
         onSuccess={() => {}}
       />
+
+      {chatTarget && (
+        <ChatModal
+          isOpen={!!chatTarget}
+          onClose={() => setChatTarget(null)}
+          recipientId={chatTarget.id}
+          recipientName={chatTarget.name}
+        />
+      )}
     </div>
   );
 }

@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { Mail, Lock, School, User, ArrowRight, Loader2, AlertCircle, FileText, Upload, CheckCircle2 } from 'lucide-react';
+import { Mail, Lock, School, User, ArrowRight, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { authService, UserRole } from '../services/authService';
-import { aiService } from '../services/aiService';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'react-hot-toast';
 
@@ -13,95 +12,173 @@ export default function Login() {
   const [name, setName] = useState('');
   const [role, setRole] = useState<UserRole>('student');
   const [loading, setLoading] = useState(false);
-  const [parsing, setParsing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resetSent, setResetSent] = useState(false);
-  
-  // Extra fields for AI auto-fill
-  const [jobRole, setJobRole] = useState('');
+
+  // Student-specific fields
+  const [course, setCourse] = useState('B.Tech');
+  const [specialization, setSpecialization] = useState('');
+  const [enrollmentYear, setEnrollmentYear] = useState<number>(new Date().getFullYear());
+  const [currentYear, setCurrentYear] = useState('1st Year');
+  const [cgpa, setCgpa] = useState('');
+  const [internshipCompany, setInternshipCompany] = useState('');
+
+  // Alumni-specific fields
   const [company, setCompany] = useState('');
-  const [skills, setSkills] = useState<string[]>([]);
+  const [jobRole, setJobRole] = useState('');
   const [gradYear, setGradYear] = useState<number>(2024);
-  const [dept, setDept] = useState('');
-  const [resumeSummary, setResumeSummary] = useState('');
+  const [experienceYears, setExperienceYears] = useState('');
+  const [location, setLocation] = useState('');
+  const [linkedinUrl, setLinkedinUrl] = useState('');
 
   const navigate = useNavigate();
 
-  const handleResumeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // Build the extra profile data based on role
+  const buildExtraData = () => {
+    const data: any = {
+      name,
+      course,
+      specialization,
+      enrollment_year: enrollmentYear,
+      department: specialization || 'ICT',
+    };
 
-    setParsing(true);
-    toast.loading("Parsing resume with AI...", { id: 'resume-parse' });
+    if (role === 'student') {
+      data.current_year = currentYear;
+      if (cgpa) data.cgpa = parseFloat(cgpa);
+      if (internshipCompany) data.internship_company = internshipCompany;
+    } else {
+      // Alumni
+      if (company) data.company = company;
+      if (jobRole) data.job_role = jobRole;
+      if (gradYear) data.graduation_year = gradYear;
+      if (gradYear) data.passout_year = gradYear;
+      if (experienceYears) data.experience_years = parseInt(experienceYears);
+      if (location) data.location = location;
+      if (linkedinUrl) data.linkedin_url = linkedinUrl;
+    }
 
+    // Remove undefined/empty values
+    Object.keys(data).forEach(k => {
+      if (data[k] === undefined || data[k] === '' || data[k] === null) delete data[k];
+    });
+
+    return data;
+  };
+
+  // Attempt to delete a stale auth-only user (no Firestore profile) via REST API
+  const deleteStaleAuthUser = async (): Promise<boolean> => {
     try {
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const base64 = (reader.result as string).split(',')[1];
-        const data = await aiService.parseResume(base64, file.type);
-        
-        if (data) {
-          if (data.name) setName(data.name);
-          if (data.job_role) setJobRole(data.job_role);
-          if (data.company) setCompany(data.company);
-          if (data.skills) setSkills(data.skills);
-          if (data.graduation_year) setGradYear(data.graduation_year);
-          if (data.department) setDept(data.department);
-          if (data.summary) setResumeSummary(data.summary);
-          
-          toast.success("Resume parsed! Profile fields updated.", { id: 'resume-parse' });
-        }
-      };
-      reader.readAsDataURL(file);
-    } catch (err: any) {
-      console.error(err);
-      toast.error("Failed to parse resume.", { id: 'resume-parse' });
-    } finally {
-      setParsing(false);
+      const res = await fetch('/api/auth/delete-stale-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) return true;
+      // If the server returned an error, show it
+      if (data.error) setError(data.error);
+      return false;
+    } catch {
+      return false;
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Client-side validation for password length
     if (!isLogin && password.length < 6) {
-      setError('Password must be at least 6 characters long.');
+      setError('Password must be at least 6 characters.');
       return;
     }
 
     setLoading(true);
     setError(null);
+
     try {
       if (isLogin) {
-        await authService.login(email, password);
-      } else {
-        const user = await authService.signup(email, password, name, role);
-        if (user) {
-          // Update profile with extra info if available
+        // ---- SIGN IN ----
+        const user = await authService.login(email, password);
+        
+        // Check if Firestore profile exists; if not, create one
+        const profile = await authService.getProfile(user.uid);
+        if (!profile) {
+          // User exists in Auth but not Firestore — create a basic profile
           await authService.updateProfile(user.uid, {
-            job_role: jobRole,
-            company,
-            skills,
-            graduation_year: gradYear,
-            department: dept,
-            resume_summary: resumeSummary,
-            resume_parsed_at: new Date().toISOString(),
+            name: user.displayName || email.split('@')[0],
+            email,
+            role: 'student',
+            isApproved: true,
+            profile_image: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
+            skills: [],
           });
         }
-      }
-      navigate('/');
-    } catch (err: any) {
-      console.error(err);
-      const errorCode = err?.code;
-      if (errorCode === 'auth/invalid-credential') {
-        setError('Incorrect email or password. Please try again or reset your password.');
-      } else if (errorCode === 'auth/user-not-found') {
-        setError('No account found with this email.');
-      } else if (errorCode === 'auth/wrong-password') {
-        setError('Incorrect password.');
+        navigate('/');
       } else {
-        setError(err?.message || 'Authentication failed');
+        // ---- CREATE ACCOUNT ----
+        try {
+          const extraData = buildExtraData();
+          await authService.signup(email, password, name, role, extraData);
+          toast.success('Account created successfully!');
+          navigate('/');
+        } catch (signupErr: any) {
+          if (signupErr?.code === 'auth/email-already-in-use') {
+            // Email exists in Firebase Auth — try to handle gracefully
+            
+            // Step 1: Try logging in with the provided password
+            try {
+              const user = await authService.login(email, password);
+              // Login succeeded — create/update the Firestore profile
+              const extraData = buildExtraData();
+              await authService.updateProfile(user.uid, {
+                ...extraData,
+                role,
+                email,
+                isApproved: true,
+                profile_image: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
+              });
+              toast.success('Welcome back! Profile updated.');
+              navigate('/');
+              return;
+            } catch {
+              // Login failed — password is different from original
+            }
+
+            // Step 2: Try deleting the stale auth user via server
+            const deleted = await deleteStaleAuthUser();
+            if (deleted) {
+              // Retry signup after stale user deletion
+              try {
+                const extraData = buildExtraData();
+                await authService.signup(email, password, name, role, extraData);
+                toast.success('Account created successfully!');
+                navigate('/');
+                return;
+              } catch (retryErr: any) {
+                setError(retryErr?.message || 'Failed to create account after cleanup.');
+              }
+            }
+            // If we get here, deletion failed — error was already set by deleteStaleAuthUser
+            if (!error) {
+              setError('This email is already registered. Try signing in or use "Forgot Password".');
+            }
+          } else {
+            throw signupErr; // Re-throw non-email-in-use errors
+          }
+        }
+      }
+    } catch (err: any) {
+      console.error('Auth error:', err);
+      const code = err?.code;
+      if (code === 'auth/invalid-credential' || code === 'auth/wrong-password') {
+        setError('Incorrect email or password.');
+      } else if (code === 'auth/user-not-found') {
+        setError('No account found. Please create one.');
+      } else if (code === 'auth/too-many-requests') {
+        setError('Too many attempts. Please try again later.');
+      } else if (code === 'auth/weak-password') {
+        setError('Password must be at least 6 characters.');
+      } else {
+        setError(err?.message || 'Authentication failed.');
       }
     } finally {
       setLoading(false);
@@ -110,7 +187,7 @@ export default function Login() {
 
   const handleForgotPassword = async () => {
     if (!email) {
-      setError('Please enter your email address to reset password.');
+      setError('Enter your email address to reset password.');
       return;
     }
     setLoading(true);
@@ -119,7 +196,7 @@ export default function Login() {
       setResetSent(true);
       toast.success('Password reset email sent!');
     } catch (err: any) {
-      setError(err?.message || 'Failed to send reset email');
+      setError(err?.message || 'Failed to send reset email.');
     } finally {
       setLoading(false);
     }
@@ -131,11 +208,11 @@ export default function Login() {
       <aside className="hidden lg:flex lg:w-1/2 relative bg-primary items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">
           <img 
-            alt="DA-IICT Academic Block" 
-            className="w-full h-full object-cover opacity-60 mix-blend-multiply" 
-            src="https://picsum.photos/seed/college/1200/1200" 
+            alt="DA-IICT Campus" 
+            className="w-full h-full object-cover" 
+            src="/images/login_bg.png" 
           />
-          <div className="absolute inset-0 bg-gradient-to-tr from-primary to-transparent opacity-80"></div>
+          <div className="absolute inset-0 bg-gradient-to-tr from-stone-900 via-stone-900/80 to-primary/40"></div>
         </div>
         <div className="relative z-10 px-16 max-w-2xl">
           <div className="flex items-center gap-3 mb-8">
@@ -184,34 +261,12 @@ export default function Login() {
                 </div>
               )}
 
+              {/* --- SIGNUP FIELDS --- */}
               {!isLogin && (
                 <>
-                  <div className="p-4 bg-primary/5 rounded-2xl border-2 border-dashed border-primary/20 transition-all hover:bg-primary/10">
-                    <label className="flex flex-col items-center justify-center cursor-pointer py-2">
-                      <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center mb-2">
-                        {parsing ? (
-                          <Loader2 className="w-5 h-5 text-primary animate-spin" />
-                        ) : (
-                          <Upload className="w-5 h-5 text-primary" />
-                        )}
-                      </div>
-                      <span className="text-sm font-bold text-primary mb-1">Upload Resume</span>
-                      <span className="text-[10px] text-on-surface-variant font-medium">AI will auto-fill your profile (PDF/Image)</span>
-                      <input 
-                        type="file" 
-                        className="hidden" 
-                        accept=".pdf,image/*" 
-                        onChange={handleResumeUpload}
-                        disabled={parsing}
-                      />
-                    </label>
-                  </div>
-
+                  {/* Name */}
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2 ml-1 font-label flex items-center justify-between">
-                      Full Name
-                      {name && <span className="text-[10px] text-success flex items-center gap-1 normal-case"><CheckCircle2 className="w-3 h-3" /> Auto-filled</span>}
-                    </label>
+                    <label className="block text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2 ml-1 font-label">Full Name</label>
                     <div className="relative">
                       <User className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/50 w-5 h-5" />
                       <input 
@@ -224,47 +279,7 @@ export default function Login() {
                     </div>
                   </div>
 
-                  {jobRole && (
-                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
-                      <label className="block text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2 ml-1 font-label flex items-center justify-between">
-                        Detected Job Role
-                        <span className="text-[10px] text-success flex items-center gap-1 normal-case"><CheckCircle2 className="w-3 h-3" /> Auto-filled</span>
-                      </label>
-                      <input 
-                        className="w-full px-4 py-3 bg-success/5 border border-success/20 rounded-xl text-on-surface font-medium" 
-                        value={jobRole}
-                        readOnly
-                      />
-                    </motion.div>
-                  )}
-
-                  {company && (
-                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mt-2">
-                      <label className="block text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2 ml-1 font-label flex items-center justify-between">
-                        Current Company
-                        <span className="text-[10px] text-success flex items-center gap-1 normal-case"><CheckCircle2 className="w-3 h-3" /> Auto-filled</span>
-                      </label>
-                      <input 
-                        className="w-full px-4 py-3 bg-success/5 border border-success/20 rounded-xl text-on-surface font-medium" 
-                        value={company}
-                        readOnly
-                      />
-                    </motion.div>
-                  )}
-
-                  {skills.length > 0 && (
-                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mt-2">
-                       <label className="block text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2 ml-1 font-label">Identified Skills</label>
-                       <div className="flex flex-wrap gap-1.5">
-                         {skills.map((skill, i) => (
-                           <span key={i} className="px-2 py-1 bg-primary/10 text-primary text-[10px] font-bold rounded-lg uppercase tracking-wider">
-                             {skill}
-                           </span>
-                         ))}
-                       </div>
-                    </motion.div>
-                  )}
-
+                  {/* Role Selection */}
                   <div>
                     <label className="block text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2 ml-1 font-label">Designation</label>
                     <div className="grid grid-cols-2 gap-3">
@@ -284,9 +299,128 @@ export default function Login() {
                       </button>
                     </div>
                   </div>
+
+                  {/* Role-specific fields */}
+                  {role === 'student' ? (
+                    <div className="space-y-4 p-4 bg-blue-50/50 rounded-2xl border border-blue-100">
+                      <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Student Details</p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1 ml-1">Course</label>
+                          <select value={course} onChange={e => setCourse(e.target.value)} className="w-full py-2.5 px-3 bg-white rounded-xl border-none text-sm focus:ring-2 focus:ring-primary font-medium">
+                            <option>B.Tech</option>
+                            <option>M.Tech</option>
+                            <option>PhD</option>
+                            <option>MSc (IT)</option>
+                            <option>MCA</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1 ml-1">Specialization</label>
+                          <select value={specialization} onChange={e => setSpecialization(e.target.value)} className="w-full py-2.5 px-3 bg-white rounded-xl border-none text-sm focus:ring-2 focus:ring-primary font-medium">
+                            <option value="">Select...</option>
+                            <option>ICT</option>
+                            <option>CS</option>
+                            <option>MnC</option>
+                            <option>ECE</option>
+                            <option>IT</option>
+                            <option>Data Science</option>
+                            <option>AI/ML</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1 ml-1">Enrollment Year</label>
+                          <input type="number" value={enrollmentYear} onChange={e => setEnrollmentYear(parseInt(e.target.value))} className="w-full py-2.5 px-3 bg-white rounded-xl border-none text-sm focus:ring-2 focus:ring-primary font-medium" min={2000} max={2030} />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1 ml-1">Current Year</label>
+                          <select value={currentYear} onChange={e => setCurrentYear(e.target.value)} className="w-full py-2.5 px-3 bg-white rounded-xl border-none text-sm focus:ring-2 focus:ring-primary font-medium">
+                            <option>1st Year</option>
+                            <option>2nd Year</option>
+                            <option>3rd Year</option>
+                            <option>4th Year</option>
+                            <option>5th Year</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1 ml-1">CGPA</label>
+                          <input type="number" step="0.01" max={10} min={0} value={cgpa} onChange={e => setCgpa(e.target.value)} placeholder="8.5" className="w-full py-2.5 px-3 bg-white rounded-xl border-none text-sm focus:ring-2 focus:ring-primary font-medium" />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1 ml-1">Internship At</label>
+                          <input type="text" value={internshipCompany} onChange={e => setInternshipCompany(e.target.value)} placeholder="e.g. Google" className="w-full py-2.5 px-3 bg-white rounded-xl border-none text-sm focus:ring-2 focus:ring-primary font-medium" />
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-4 p-4 bg-emerald-50/50 rounded-2xl border border-emerald-100">
+                      <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Alumni Details</p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1 ml-1">Company</label>
+                          <input type="text" value={company} onChange={e => setCompany(e.target.value)} placeholder="e.g. Google" className="w-full py-2.5 px-3 bg-white rounded-xl border-none text-sm focus:ring-2 focus:ring-primary font-medium" required />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1 ml-1">Role</label>
+                          <input type="text" value={jobRole} onChange={e => setJobRole(e.target.value)} placeholder="e.g. SDE" className="w-full py-2.5 px-3 bg-white rounded-xl border-none text-sm focus:ring-2 focus:ring-primary font-medium" required />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1 ml-1">Course</label>
+                          <select value={course} onChange={e => setCourse(e.target.value)} className="w-full py-2.5 px-3 bg-white rounded-xl border-none text-sm focus:ring-2 focus:ring-primary font-medium">
+                            <option>B.Tech</option>
+                            <option>M.Tech</option>
+                            <option>PhD</option>
+                            <option>MSc (IT)</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1 ml-1">Specialization</label>
+                          <select value={specialization} onChange={e => setSpecialization(e.target.value)} className="w-full py-2.5 px-3 bg-white rounded-xl border-none text-sm focus:ring-2 focus:ring-primary font-medium">
+                            <option value="">Select...</option>
+                            <option>ICT</option>
+                            <option>CS</option>
+                            <option>MnC</option>
+                            <option>ECE</option>
+                            <option>IT</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1 ml-1">Enrollment Year</label>
+                          <input type="number" value={enrollmentYear} onChange={e => setEnrollmentYear(parseInt(e.target.value))} className="w-full py-2.5 px-3 bg-white rounded-xl border-none text-sm focus:ring-2 focus:ring-primary font-medium" min={1990} max={2030} />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1 ml-1">Passout Year</label>
+                          <input type="number" value={gradYear} onChange={e => setGradYear(parseInt(e.target.value))} className="w-full py-2.5 px-3 bg-white rounded-xl border-none text-sm focus:ring-2 focus:ring-primary font-medium" min={1990} max={2030} />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1 ml-1">Experience (Years)</label>
+                          <input type="number" value={experienceYears} onChange={e => setExperienceYears(e.target.value)} placeholder="3" className="w-full py-2.5 px-3 bg-white rounded-xl border-none text-sm focus:ring-2 focus:ring-primary font-medium" min={0} max={40} />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1 ml-1">Location</label>
+                          <input type="text" value={location} onChange={e => setLocation(e.target.value)} placeholder="e.g. Bengaluru" className="w-full py-2.5 px-3 bg-white rounded-xl border-none text-sm focus:ring-2 focus:ring-primary font-medium" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1 ml-1">LinkedIn URL</label>
+                        <input type="url" value={linkedinUrl} onChange={e => setLinkedinUrl(e.target.value)} placeholder="https://linkedin.com/in/yourname" className="w-full py-2.5 px-3 bg-white rounded-xl border-none text-sm focus:ring-2 focus:ring-primary font-medium" />
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
 
+              {/* Email */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2 ml-1 font-label">Institutional Email</label>
                 <div className="relative">
@@ -302,6 +436,7 @@ export default function Login() {
                 </div>
               </div>
 
+              {/* Password */}
               <div>
                 <div className="flex justify-between items-center mb-2 ml-1">
                   <label className="text-xs font-bold uppercase tracking-widest text-on-surface-variant font-label">Security Key (Password)</label>
@@ -333,6 +468,7 @@ export default function Login() {
                 </div>
               )}
 
+              {/* Submit */}
               <button 
                 type="submit" 
                 disabled={loading}
@@ -354,7 +490,7 @@ export default function Login() {
             <p className="text-on-surface-variant font-medium font-body">
               {isLogin ? "New to the community? " : "Already have an account? "}
               <button 
-                onClick={() => setIsLogin(!isLogin)}
+                onClick={() => { setIsLogin(!isLogin); setError(null); setResetSent(false); }}
                 className="text-primary font-bold hover:underline ml-1 font-headline"
               >
                 {isLogin ? 'Request Membership' : 'Sign In instead'}

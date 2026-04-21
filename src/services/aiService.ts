@@ -8,6 +8,8 @@ interface ResumeParseResult {
   graduation_year?: number;
   department?: string;
   summary?: string;
+  ai_introduction?: string;
+  ai_projects?: { title: string; description: string }[];
 }
 
 class AIService {
@@ -75,6 +77,26 @@ class AIService {
     } catch (error) {
       console.error('Referral generation error:', error);
       return null;
+    }
+  }
+
+  async getNetworkingRadarInsights(events: any[], studentProfile: any): Promise<any[]> {
+    try {
+      const response = await fetch(`${API_BASE}/ai/networking-radar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ events, studentProfile }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Networking radar request failed');
+      }
+
+      const data = await response.json();
+      return data.insights || [];
+    } catch (error) {
+      console.error('Networking radar error:', error);
+      return [];
     }
   }
 }

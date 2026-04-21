@@ -39,9 +39,7 @@ service cloud.firestore {
                data.role in ['student', 'alumni', 'admin'];
       }
 
-      // Explicitly allow reading one's own identity first to resolve listener errors
       allow get: if isOwner(userId);
-      // Allow authenticated users to read and search other non-admin profiles
       allow get: if isSignedIn() && (resource == null || resource.data.role != 'admin' || isAdmin());
       allow list: if isSignedIn() && (resource.data.role == 'alumni' || resource.data.role == 'student' || isAdmin());
       
@@ -112,14 +110,8 @@ service cloud.firestore {
       }
 
       allow read: if isSignedIn();
-      
-      // All authenticated users (student, alumni, admin) can post jobs
       allow create: if isSignedIn() && isOwner(incoming().posted_by) && isValidJob(incoming());
-
-      allow update: if isSignedIn() && (isAdmin() || isOwner(existing().posted_by)) && 
-                    isValidJob(incoming()) &&
-                    incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'location', 'company', 'status', 'domain', 'apply_url', 'requirements', 'posted_by_name', 'posted_by_role']);
-      
+      allow update: if isSignedIn() && (isAdmin() || isOwner(existing().posted_by));
       allow delete: if isSignedIn() && (isAdmin() || isOwner(existing().posted_by));
     }
 
@@ -145,7 +137,45 @@ service cloud.firestore {
     match /events/{eventId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn();
-      allow update, delete: if isAdmin();
+      allow update: if isSignedIn() && (isAdmin() || isOwner(existing().organizerId));
+      allow delete: if isSignedIn() && (isAdmin() || isOwner(existing().organizerId));
+    }
+
+    // 7. Conversations Collection
+    match /conversations/{conversationId} {
+      allow read: if isSignedIn() && (
+        request.auth.uid in resource.data.participants
+      );
+      allow create: if isSignedIn() && (
+        request.auth.uid in incoming().participants
+      );
+      allow update: if isSignedIn() && (
+        request.auth.uid in resource.data.participants
+      );
+    }
+
+    // 8. Messages Sub-collection
+    match /conversations/{conversationId}/messages/{messageId} {
+      allow read: if isSignedIn() && (
+        request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants
+      );
+      allow create: if isSignedIn() && (
+        request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants &&
+        incoming().senderId == request.auth.uid
+      );
+    }
+
+    // 9. Networking Events Collection (AI Radar)
+    match /networking_events/{eventId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+    }
+
+    // 10. Notifications Collection
+    match /notifications/{notificationId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid;
     }
   }
 }

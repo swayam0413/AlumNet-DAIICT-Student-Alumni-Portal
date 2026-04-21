@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { MapPin, CheckCircle, GraduationCap, Briefcase, GraduationCap as SchoolIcon, BrainCircuit, Loader2, Save, X, Edit2, Upload, FileCheck, User, Quote, Mail, ShieldCheck, Calendar } from 'lucide-react';
+import { MapPin, CheckCircle, GraduationCap, Briefcase, GraduationCap as SchoolIcon, BrainCircuit, Loader2, Save, X, Edit2, Upload, FileCheck, User, Quote, Mail, ShieldCheck, Calendar, MessageCircle, Send } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { authService, UserProfile } from '../services/authService';
 import { aiService } from '../services/aiService';
+import { dataService } from '../services/dataService';
 import { toast } from 'react-hot-toast';
+import ChatModal from '../components/ChatModal';
 
 export default function Profile() {
   const { id } = useParams();
@@ -14,6 +16,7 @@ export default function Profile() {
   const [editLoading, setEditLoading] = useState(false);
   const [parsing, setParsing] = useState(false);
   const [loadingView, setLoadingView] = useState(!!id);
+  const [chatOpen, setChatOpen] = useState(false);
   
   const [formData, setFormData] = useState<Partial<UserProfile>>({
     name: '',
@@ -24,6 +27,17 @@ export default function Profile() {
     skills: [],
     profile_image: '',
     resume_summary: '',
+    course: '',
+    specialization: '',
+    enrollment_year: undefined,
+    current_year: '',
+    cgpa: undefined,
+    internship_company: '',
+    internship_role: '',
+    experience_years: undefined,
+    linkedin_url: '',
+    location: '',
+    passout_year: undefined,
   });
 
   // Determine if this is the current user's profile
@@ -63,6 +77,17 @@ export default function Profile() {
         skills: loggedInProfile.skills || [],
         profile_image: loggedInProfile.profile_image || authUser?.photoURL || '',
         resume_summary: loggedInProfile.resume_summary || '',
+        course: loggedInProfile.course || '',
+        specialization: loggedInProfile.specialization || '',
+        enrollment_year: loggedInProfile.enrollment_year,
+        current_year: loggedInProfile.current_year || '',
+        cgpa: loggedInProfile.cgpa,
+        internship_company: loggedInProfile.internship_company || '',
+        internship_role: loggedInProfile.internship_role || '',
+        experience_years: loggedInProfile.experience_years,
+        linkedin_url: loggedInProfile.linkedin_url || '',
+        location: loggedInProfile.location || '',
+        passout_year: loggedInProfile.passout_year,
       });
     }
   }, [loggedInProfile, authUser, isOwnProfile]);
@@ -102,29 +127,32 @@ export default function Profile() {
                 setParsing(true);
                 toast.loading("AI Building your profile...", { id: 'resume-parse' });
                 try {
-                  const reader = new FileReader();
-                  reader.onload = async () => {
-                    const base64 = (reader.result as string).split(',')[1];
-                    const data = await aiService.parseResume(base64, file.type);
-                    if (data) {
-                      const initialProfile = {
-                        name: data.name || authUser?.displayName || 'Alumnus',
-                        email: authUser?.email || '',
-                        role: 'alumni' as const,
-                        job_role: data.job_role || '',
-                        company: data.company || '',
-                        skills: data.skills || [],
-                        graduation_year: data.graduation_year || 2024,
-                        department: data.department || '',
-                        resume_summary: data.summary || '',
-                        isApproved: false
-                      };
-                      await authService.updateProfile(authUser!.uid, initialProfile);
-                      toast.success("Profile created successfully!", { id: 'resume-parse' });
-                      window.location.reload(); // Refresh to load new profile
-                    }
-                  };
-                  reader.readAsDataURL(file);
+                  const base64 = await new Promise<string>((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve((reader.result as string).split(',')[1]);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(file);
+                  });
+                  const data = await aiService.parseResume(base64, file.type);
+                  if (data) {
+                    const initialProfile = {
+                      name: data.name || authUser?.displayName || 'Alumnus',
+                      email: authUser?.email || '',
+                      role: 'alumni' as const,
+                      job_role: data.job_role || '',
+                      company: data.company || '',
+                      skills: data.skills || [],
+                      graduation_year: data.graduation_year || 2024,
+                      department: data.department || '',
+                      resume_summary: data.summary || '',
+                      isApproved: false
+                    };
+                    await authService.updateProfile(authUser!.uid, initialProfile);
+                    toast.success("Profile created successfully!", { id: 'resume-parse' });
+                    window.location.reload(); // Refresh to load new profile
+                  } else {
+                    toast.error("AI couldn't extract data.", { id: 'resume-parse' });
+                  }
                 } catch (err) {
                   toast.error("Failed to parse resume.", { id: 'resume-parse' });
                 } finally {
@@ -163,25 +191,41 @@ export default function Profile() {
     toast.loading("AI is analyzing your resume...", { id: 'resume-parse' });
 
     try {
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const base64 = (reader.result as string).split(',')[1];
-        const data = await aiService.parseResume(base64, file.type);
-        
-        if (data) {
-          setFormData(prev => ({
-            ...prev,
-            name: data.name || prev.name,
-            job_role: data.job_role || prev.job_role,
-            company: data.company || prev.company,
-            skills: data.skills || prev.skills,
-            graduation_year: data.graduation_year || prev.graduation_year,
-            department: data.department || prev.department,
-          }));
-          toast.success("Profile fields updated from resume!", { id: 'resume-parse' });
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve((reader.result as string).split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const data = await aiService.parseResume(base64, file.type);
+      
+      if (data) {
+        // Build the update payload with AI-extracted fields
+        const updatePayload: any = {
+          name: data.name || formData.name,
+          job_role: data.job_role || formData.job_role,
+          company: data.company || formData.company,
+          skills: data.skills || formData.skills,
+          graduation_year: data.graduation_year || formData.graduation_year,
+          department: data.department || formData.department,
+          resume_summary: data.summary || formData.resume_summary,
+          ai_introduction: data.ai_introduction || '',
+          ai_projects: data.ai_projects || [],
+          resume_parsed_at: new Date().toISOString(),
+        };
+
+        // Update formData for edit mode
+        setFormData(prev => ({ ...prev, ...updatePayload }));
+
+        // Save directly to Firestore so it reflects immediately
+        if (authUser) {
+          await authService.updateProfile(authUser.uid, updatePayload);
         }
-      };
-      reader.readAsDataURL(file);
+
+        toast.success("Resume analyzed! Introduction, projects & skills updated.", { id: 'resume-parse' });
+      } else {
+        toast.error("AI couldn't extract data.", { id: 'resume-parse' });
+      }
     } catch (err) {
       console.error(err);
       toast.error("Failed to parse resume.", { id: 'resume-parse' });
@@ -233,7 +277,7 @@ export default function Profile() {
           src={`https://picsum.photos/seed/profile-${displayProfile.id}/1200/400`} 
         />
         <div className="absolute inset-0 bg-gradient-to-t from-surface via-surface/40 to-transparent"></div>
-        {!isEditing && (
+        {isOwnProfile && !isEditing && (
           <button 
             onClick={() => setIsEditing(true)}
             className="absolute bottom-6 right-6 p-4 bg-white/90 backdrop-blur rounded-2xl shadow-xl hover:bg-white transition-all flex items-center gap-2 font-bold text-sm text-on-surface"
@@ -241,6 +285,28 @@ export default function Profile() {
             <Edit2 className="w-4 h-4" />
             Edit Profile
           </button>
+        )}
+        {!isOwnProfile && (
+          <div className="absolute bottom-6 right-6 flex gap-3">
+            <button
+              onClick={() => setChatOpen(true)}
+              className="p-4 bg-white/90 backdrop-blur rounded-2xl shadow-xl hover:bg-white transition-all flex items-center gap-2 font-bold text-sm text-primary"
+            >
+              <MessageCircle className="w-4 h-4" /> Send Message
+            </button>
+            <button
+              onClick={async () => {
+                if (!profile || !id) return;
+                try {
+                  await dataService.sendConnectionRequest(profile.id, id);
+                  toast.success('Connection request sent!');
+                } catch (e: any) { toast.error(e.message || 'Failed'); }
+              }}
+              className="p-4 bg-primary backdrop-blur rounded-2xl shadow-xl hover:bg-orange-700 transition-all flex items-center gap-2 font-bold text-sm text-white"
+            >
+              <Send className="w-4 h-4" /> Connect
+            </button>
+          </div>
         )}
       </section>
 
@@ -387,54 +453,294 @@ export default function Profile() {
             </div>
           ) : null}
 
-          <div className="md:col-span-12 lg:col-span-7 bg-surface-container-lowest p-10 rounded-[40px] shadow-sm border border-outline-variant/10">
-            <div className="flex items-center justify-between mb-10">
-              <h2 className="text-2xl font-headline font-extrabold text-on-surface">Alma Mater Journey</h2>
-              <div className="w-12 h-12 bg-stone-50 rounded-2xl flex items-center justify-center">
-                <SchoolIcon className="text-on-surface-variant/40 w-6 h-6" />
-              </div>
-            </div>
-            {isEditing ? (
-              <div className="space-y-6">
-                <div className="relative">
-                  <GraduationCap className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-primary/30" />
-                  <input 
-                    className="pl-14 w-full bg-stone-50 border-2 border-transparent rounded-2xl py-4 px-6 font-bold text-on-surface"
-                    placeholder="Department (e.g. ICT, MnC)"
-                    value={formData.department}
-                    onChange={(e) => setFormData({...formData, department: e.target.value})}
-                  />
+          {/* Resume Upload + AI Insights */}
+          <div className="md:col-span-12 space-y-8">
+            {/* Resume Upload Card */}
+            {isOwnProfile && (
+              <div className="bg-gradient-to-br from-stone-900 to-stone-800 rounded-[40px] p-10 text-white relative overflow-hidden">
+                <div className="absolute -top-10 -right-10 opacity-5">
+                  <Upload className="w-64 h-64" />
                 </div>
-                <div className="relative">
-                   <Calendar className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-primary/30" />
-                   <input 
-                    type="number"
-                    className="pl-14 w-full bg-stone-50 border-2 border-transparent rounded-2xl py-4 px-6 font-bold text-on-surface"
-                    placeholder="Graduation Year"
-                    value={formData.graduation_year}
-                    onChange={(e) => setFormData({...formData, graduation_year: parseInt(e.target.value)})}
-                  />
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-10">
-                <div className="flex gap-8">
-                  <div className="w-20 h-20 bg-primary/10 rounded-[28px] flex items-center justify-center shrink-0 shadow-inner">
-                    <GraduationCap className="text-primary w-10 h-10" />
-                  </div>
-                  <div className="space-y-1">
-                    <h4 className="font-headline font-black text-2xl text-on-surface">DA-IICT</h4>
-                    <p className="text-xl text-primary font-bold font-body">{displayProfile.department || 'Information & Communication Technology'}</p>
-                    <div className="flex items-center gap-2 mt-2">
-                      <span className="px-3 py-1 bg-stone-100 text-stone-500 rounded-lg text-sm font-black tracking-widest uppercase">Class of {displayProfile.graduation_year}</span>
-                      <span className="w-1 h-1 bg-stone-300 rounded-full"></span>
-                      <span className="text-stone-400 text-sm font-medium italic">Gandhinagar, India</span>
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h2 className="text-2xl font-headline font-extrabold mb-2">AI Resume Analysis</h2>
+                      <p className="text-stone-400 text-sm font-medium">Upload your resume and AI will extract your introduction, projects, and skills automatically.</p>
+                    </div>
+                    <div className="w-14 h-14 bg-primary/20 rounded-2xl flex items-center justify-center">
+                      <BrainCircuit className="w-7 h-7 text-primary" />
                     </div>
                   </div>
+                  <label className="inline-flex items-center gap-3 cursor-pointer px-8 py-4 bg-primary text-white rounded-2xl font-bold text-sm hover:scale-105 transition-all shadow-lg shadow-primary/30 active:scale-95">
+                    {parsing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
+                    {parsing ? 'Analyzing...' : 'Upload Resume (PDF/Image)'}
+                    <input type="file" className="hidden" accept=".pdf,image/*" onChange={handleResumeUpload} disabled={parsing} />
+                  </label>
+                  {displayProfile.resume_parsed_at && (
+                    <p className="text-[10px] text-stone-500 mt-4 font-bold uppercase tracking-widest flex items-center gap-2">
+                      <FileCheck className="w-3 h-3 text-emerald-400" />
+                      Last analyzed: {new Date(displayProfile.resume_parsed_at).toLocaleDateString()}
+                    </p>
+                  )}
                 </div>
               </div>
             )}
+
+            {/* AI Cards Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Introduction Card */}
+              <div className="bg-surface-container-lowest p-10 rounded-[40px] border border-outline-variant/10 relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-6 opacity-5">
+                  <User className="w-28 h-28" />
+                </div>
+                <div className="relative z-10">
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center">
+                      <User className="text-blue-600 w-6 h-6" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-headline font-extrabold text-on-surface">Introduction</h2>
+                      <p className="text-[10px] text-stone-400 font-bold uppercase tracking-widest flex items-center gap-1">
+                        <BrainCircuit className="w-3 h-3" /> AI-Generated from Resume
+                      </p>
+                    </div>
+                  </div>
+                  {displayProfile.ai_introduction ? (
+                    <p className="text-stone-600 leading-relaxed font-body text-[15px]">
+                      {displayProfile.ai_introduction}
+                    </p>
+                  ) : (
+                    <div className="py-8 text-center border-2 border-dashed border-stone-100 rounded-3xl">
+                      <User className="w-8 h-8 text-stone-200 mx-auto mb-3" />
+                      <p className="text-stone-400 text-sm font-medium">No introduction yet</p>
+                      <p className="text-stone-300 text-xs mt-1">{isOwnProfile ? 'Upload resume to generate' : ''}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Projects Card */}
+              <div className="bg-surface-container-lowest p-10 rounded-[40px] border border-outline-variant/10 relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-6 opacity-5">
+                  <Briefcase className="w-28 h-28" />
+                </div>
+                <div className="relative z-10">
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center">
+                      <Briefcase className="text-emerald-600 w-6 h-6" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-headline font-extrabold text-on-surface">Projects</h2>
+                      <p className="text-[10px] text-stone-400 font-bold uppercase tracking-widest flex items-center gap-1">
+                        <BrainCircuit className="w-3 h-3" /> Extracted from Resume
+                      </p>
+                    </div>
+                  </div>
+                  {displayProfile.ai_projects && displayProfile.ai_projects.length > 0 ? (
+                    <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
+                      {displayProfile.ai_projects.map((project: any, idx: number) => (
+                        <div key={idx} className="p-4 bg-stone-50/80 rounded-2xl border border-stone-100 hover:border-primary/20 transition-colors">
+                          <h4 className="font-bold text-sm text-on-surface mb-1 flex items-center gap-2">
+                            <span className="w-6 h-6 bg-primary/10 rounded-lg flex items-center justify-center text-[10px] font-black text-primary">{idx + 1}</span>
+                            {project.title}
+                          </h4>
+                          <p className="text-xs text-stone-500 leading-relaxed pl-8">{project.description}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="py-8 text-center border-2 border-dashed border-stone-100 rounded-3xl">
+                      <Briefcase className="w-8 h-8 text-stone-200 mx-auto mb-3" />
+                      <p className="text-stone-400 text-sm font-medium">No projects yet</p>
+                      <p className="text-stone-300 text-xs mt-1">{isOwnProfile ? 'Upload resume to auto-extract' : ''}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
+
+          {/* Extended Details Card — only show if user has extra fields */}
+          {!isEditing && (
+            <div className="md:col-span-12 bg-surface-container-lowest p-10 rounded-[40px] border border-outline-variant/10">
+              <h2 className="text-2xl font-headline font-extrabold text-on-surface mb-8">Profile Details</h2>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {/* Common Fields */}
+                {displayProfile.role && (
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Role</p>
+                    <p className="text-sm font-bold text-on-surface capitalize">{displayProfile.role}</p>
+                  </div>
+                )}
+                {displayProfile.course && (
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Course</p>
+                    <p className="text-sm font-bold text-on-surface">{displayProfile.course}</p>
+                  </div>
+                )}
+                {displayProfile.specialization && (
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Specialization</p>
+                    <p className="text-sm font-bold text-on-surface">{displayProfile.specialization}</p>
+                  </div>
+                )}
+                {displayProfile.enrollment_year && (
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Enrollment Year</p>
+                    <p className="text-sm font-bold text-on-surface">{displayProfile.enrollment_year}</p>
+                  </div>
+                )}
+                {(displayProfile.graduation_year || displayProfile.passout_year) && (
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">{displayProfile.role === 'alumni' ? 'Passout Year' : 'Expected Graduation'}</p>
+                    <p className="text-sm font-bold text-on-surface">{displayProfile.graduation_year || displayProfile.passout_year}</p>
+                  </div>
+                )}
+
+                {/* Student-Specific */}
+                {displayProfile.current_year && (
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Current Year</p>
+                    <p className="text-sm font-bold text-on-surface">{displayProfile.current_year}</p>
+                  </div>
+                )}
+                {displayProfile.cgpa && (
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">CGPA</p>
+                    <p className="text-sm font-bold text-primary">{displayProfile.cgpa} / 10.0</p>
+                  </div>
+                )}
+                {displayProfile.internship_company && (
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Internship</p>
+                    <p className="text-sm font-bold text-on-surface">
+                      {displayProfile.internship_role ? `${displayProfile.internship_role} @ ` : ''}{displayProfile.internship_company}
+                    </p>
+                  </div>
+                )}
+
+                {/* Alumni-Specific */}
+                {displayProfile.company && (
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Company</p>
+                    <p className="text-sm font-bold text-on-surface">{displayProfile.company}</p>
+                  </div>
+                )}
+                {displayProfile.job_role && (
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Job Role</p>
+                    <p className="text-sm font-bold text-on-surface">{displayProfile.job_role}</p>
+                  </div>
+                )}
+                {displayProfile.experience_years && (
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Experience</p>
+                    <p className="text-sm font-bold text-on-surface">{displayProfile.experience_years} years</p>
+                  </div>
+                )}
+                {displayProfile.location && (
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Location</p>
+                    <p className="text-sm font-bold text-on-surface">{displayProfile.location}</p>
+                  </div>
+                )}
+                {displayProfile.linkedin_url && (
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">LinkedIn</p>
+                    <a href={displayProfile.linkedin_url} target="_blank" rel="noreferrer" className="text-sm font-bold text-primary hover:underline truncate block">
+                      View Profile ↗
+                    </a>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Edit Mode — Extended Fields */}
+          {isEditing && (
+            <div className="md:col-span-12 bg-surface-container-lowest p-10 rounded-[40px] border border-outline-variant/10 space-y-6">
+              <h2 className="text-2xl font-headline font-extrabold text-on-surface">Extended Details</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-black text-stone-400 uppercase tracking-widest mb-2 ml-1">Course</label>
+                  <select value={formData.course || ''} onChange={e => setFormData({...formData, course: e.target.value})} className="w-full py-3 px-4 bg-stone-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-primary">
+                    <option value="">Select...</option>
+                    <option>B.Tech</option>
+                    <option>M.Tech</option>
+                    <option>PhD</option>
+                    <option>MSc (IT)</option>
+                    <option>MCA</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black text-stone-400 uppercase tracking-widest mb-2 ml-1">Specialization</label>
+                  <select value={formData.specialization || ''} onChange={e => setFormData({...formData, specialization: e.target.value})} className="w-full py-3 px-4 bg-stone-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-primary">
+                    <option value="">Select...</option>
+                    <option>ICT</option>
+                    <option>CS</option>
+                    <option>MnC</option>
+                    <option>ECE</option>
+                    <option>IT</option>
+                    <option>Data Science</option>
+                    <option>AI/ML</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black text-stone-400 uppercase tracking-widest mb-2 ml-1">Enrollment Year</label>
+                  <input type="number" value={formData.enrollment_year || ''} onChange={e => setFormData({...formData, enrollment_year: parseInt(e.target.value)})} className="w-full py-3 px-4 bg-stone-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-primary" placeholder="2022" min={1990} max={2030} />
+                </div>
+                
+                {effectiveProfile?.role === 'student' && (
+                  <>
+                    <div>
+                      <label className="block text-[10px] font-black text-stone-400 uppercase tracking-widest mb-2 ml-1">Current Year</label>
+                      <select value={formData.current_year || ''} onChange={e => setFormData({...formData, current_year: e.target.value})} className="w-full py-3 px-4 bg-stone-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-primary">
+                        <option value="">Select...</option>
+                        <option>1st Year</option>
+                        <option>2nd Year</option>
+                        <option>3rd Year</option>
+                        <option>4th Year</option>
+                        <option>5th Year</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black text-stone-400 uppercase tracking-widest mb-2 ml-1">CGPA</label>
+                      <input type="number" step="0.01" min={0} max={10} value={formData.cgpa || ''} onChange={e => setFormData({...formData, cgpa: parseFloat(e.target.value)})} className="w-full py-3 px-4 bg-stone-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-primary" placeholder="8.5" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black text-stone-400 uppercase tracking-widest mb-2 ml-1">Internship Company</label>
+                      <input type="text" value={formData.internship_company || ''} onChange={e => setFormData({...formData, internship_company: e.target.value})} className="w-full py-3 px-4 bg-stone-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-primary" placeholder="e.g. Google" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black text-stone-400 uppercase tracking-widest mb-2 ml-1">Internship Role</label>
+                      <input type="text" value={formData.internship_role || ''} onChange={e => setFormData({...formData, internship_role: e.target.value})} className="w-full py-3 px-4 bg-stone-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-primary" placeholder="e.g. SDE Intern" />
+                    </div>
+                  </>
+                )}
+
+                {effectiveProfile?.role === 'alumni' && (
+                  <>
+                    <div>
+                      <label className="block text-[10px] font-black text-stone-400 uppercase tracking-widest mb-2 ml-1">Passout Year</label>
+                      <input type="number" value={formData.passout_year || formData.graduation_year || ''} onChange={e => setFormData({...formData, passout_year: parseInt(e.target.value), graduation_year: parseInt(e.target.value)})} className="w-full py-3 px-4 bg-stone-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-primary" placeholder="2020" min={1990} max={2030} />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black text-stone-400 uppercase tracking-widest mb-2 ml-1">Experience (Years)</label>
+                      <input type="number" value={formData.experience_years || ''} onChange={e => setFormData({...formData, experience_years: parseInt(e.target.value)})} className="w-full py-3 px-4 bg-stone-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-primary" placeholder="3" min={0} max={40} />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black text-stone-400 uppercase tracking-widest mb-2 ml-1">Location</label>
+                      <input type="text" value={formData.location || ''} onChange={e => setFormData({...formData, location: e.target.value})} className="w-full py-3 px-4 bg-stone-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-primary" placeholder="e.g. Bengaluru" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black text-stone-400 uppercase tracking-widest mb-2 ml-1">LinkedIn URL</label>
+                      <input type="url" value={formData.linkedin_url || ''} onChange={e => setFormData({...formData, linkedin_url: e.target.value})} className="w-full py-3 px-4 bg-stone-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-primary" placeholder="https://linkedin.com/in/yourname" />
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="md:col-span-12 lg:col-span-5 bg-stone-950 rounded-[40px] p-10 text-white shadow-2xl relative overflow-hidden">
             <div className="absolute -bottom-10 -right-10 opacity-5">
@@ -510,6 +816,16 @@ export default function Profile() {
           </div>
         </div>
       </div>
+
+      {/* Chat Modal for messaging other users */}
+      {!isOwnProfile && id && (
+        <ChatModal
+          isOpen={chatOpen}
+          onClose={() => setChatOpen(false)}
+          recipientId={id}
+          recipientName={displayProfile.name || 'User'}
+        />
+      )}
     </div>
   );
 }

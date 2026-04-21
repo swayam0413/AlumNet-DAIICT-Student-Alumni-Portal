@@ -31,22 +31,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       setUser(firebaseUser);
-      
+
       if (firebaseUser) {
-        // Listen for profile changes
-        unsubscribeProfile = onSnapshot(doc(db, 'users', firebaseUser.uid), 
+        // Listen for profile changes in real-time
+        unsubscribeProfile = onSnapshot(doc(db, 'users', firebaseUser.uid),
           (docSnap) => {
             if (docSnap.exists()) {
               setProfile(docSnap.data() as UserProfile);
             } else {
+              // No profile doc yet — don't sign out, just set null
+              // The login flow will create the profile
               setProfile(null);
             }
             setLoading(false);
           },
           (error) => {
             console.error("Profile Listener Error:", error);
-            // Don't set profile to null if it's just a listener error for an existing doc
-            // but if doc was missing, we'll keep profile as null
+            setProfile(null);
             setLoading(false);
           }
         );
@@ -66,9 +67,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     user,
     profile,
     loading,
-    isAdmin: profile?.role === 'admin' || 
-             profile?.email?.toLowerCase() === 'dhruvpanchasara389@gmail.com' || 
-             user?.email?.toLowerCase() === 'dhruvpanchasara389@gmail.com',
+    isAdmin: profile?.role === 'admin' ||
+      profile?.email?.toLowerCase() === 'dhruvpanchasara389@gmail.com' ||
+      user?.email?.toLowerCase() === 'dhruvpanchasara389@gmail.com',
     isAlumni: profile?.role === 'alumni',
     isStudent: profile?.role === 'student',
   };
