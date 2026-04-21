@@ -280,10 +280,10 @@ export default function Profile() {
         {isOwnProfile && !isEditing && (
           <button 
             onClick={() => setIsEditing(true)}
-            className="absolute bottom-6 right-6 p-4 bg-white/90 backdrop-blur rounded-2xl shadow-xl hover:bg-white transition-all flex items-center gap-2 font-bold text-sm text-on-surface"
+            className="absolute bottom-15 right-6 p-4 bg-white/90 backdrop-blur rounded-2xl shadow-xl hover:bg-white transition-all flex items-center gap-2 font-bold text-sm text-on-surface"
           >
             <Edit2 className="w-4 h-4" />
-            Edit Profile
+            Edit User Profile
           </button>
         )}
         {!isOwnProfile && (
