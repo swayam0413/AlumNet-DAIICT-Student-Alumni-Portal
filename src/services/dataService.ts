@@ -152,17 +152,26 @@ class DataService {
 
   async getAlumniByCompany(company: string): Promise<UserProfile[]> {
     try {
-      // Try exact match first
-      const q = query(
-        collection(db, 'users'),
-        where('isApproved', '==', true)
-      );
-      const snap = await getDocs(q);
       const companyLower = company.toLowerCase().trim();
-      // Client-side case-insensitive matching for better results
-      return snap.docs
-        .map(d => ({ id: d.id, ...d.data() } as UserProfile))
-        .filter(u => u.company && u.company.toLowerCase().trim() === companyLower);
+
+      // Fetch alumni and students separately (Firestore rules require role filter for list)
+      const [alumniSnap, studentSnap] = await Promise.all([
+        getDocs(query(collection(db, 'users'), where('role', '==', 'alumni'))),
+        getDocs(query(collection(db, 'users'), where('role', '==', 'student'))),
+      ]);
+
+      const allUsers = [
+        ...alumniSnap.docs.map(d => ({ id: d.id, ...d.data() } as UserProfile)),
+        ...studentSnap.docs.map(d => ({ id: d.id, ...d.data() } as UserProfile)),
+      ];
+
+      // Case-insensitive matching — also match partial (e.g. "Microsoft" matches "Microsoft India")
+      return allUsers.filter(u =>
+        u.company &&
+        (u.company.toLowerCase().trim() === companyLower ||
+         u.company.toLowerCase().trim().includes(companyLower) ||
+         companyLower.includes(u.company.toLowerCase().trim()))
+      );
     } catch (error) {
       console.error('getAlumniByCompany error:', error);
       return [];

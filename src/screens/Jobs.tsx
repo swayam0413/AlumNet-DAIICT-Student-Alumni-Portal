@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Briefcase, MapPin, Send, Plus, ArrowRight, Loader2, X, UserPlus, ExternalLink, Users, Globe, Tag, FileText, Link2, Building2, ChevronDown, ChevronUp, MessageCircle } from 'lucide-react';
+import { Briefcase, MapPin, Send, Plus, ArrowRight, Loader2, X, UserPlus, ExternalLink, Users, Globe, Tag, FileText, Link2, Building2, ChevronDown, ChevronUp, MessageCircle, Target } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
 import { dataService, Job } from '../services/dataService';
@@ -7,6 +7,7 @@ import { UserProfile } from '../services/authService';
 import { toast } from 'react-hot-toast';
 import ReferralModal from '../components/ReferralModal';
 import ChatModal from '../components/ChatModal';
+import ResumeMatchModal from '../components/ResumeMatchModal';
 import { useNavigate } from 'react-router-dom';
 
 export default function Jobs() {
@@ -26,6 +27,7 @@ export default function Jobs() {
     requirements: '',
   });
   const [selectedJobForReferral, setSelectedJobForReferral] = useState<Job | null>(null);
+  const [selectedJobForMatch, setSelectedJobForMatch] = useState<Job | null>(null);
   const [expandedJob, setExpandedJob] = useState<string | null>(null);
   const [companyAlumni, setCompanyAlumni] = useState<Record<string, UserProfile[]>>({});
   const [loadingAlumni, setLoadingAlumni] = useState<string | null>(null);
@@ -182,15 +184,24 @@ export default function Jobs() {
                       <><ArrowRight className="w-4 h-4" /> Apply Now</>
                     )}
                   </button>
-                  {isStudent && job.posted_by && (
+                  <div className="flex items-center gap-2">
                     <button
-                      onClick={() => setSelectedJobForReferral(job)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary text-xs font-bold rounded-lg hover:bg-primary/20 transition-all"
+                      onClick={() => setSelectedJobForMatch(job)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 text-xs font-bold rounded-lg hover:bg-blue-100 transition-all"
                     >
-                      <UserPlus className="w-3.5 h-3.5" />
-                      Request Referral
+                      <Target className="w-3.5 h-3.5" />
+                      Check Match
                     </button>
-                  )}
+                    {isStudent && job.posted_by && (
+                      <button
+                        onClick={() => setSelectedJobForReferral(job)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary text-xs font-bold rounded-lg hover:bg-primary/20 transition-all"
+                      >
+                        <UserPlus className="w-3.5 h-3.5" />
+                        Request Referral
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Show Alumni at Company Button */}
@@ -431,6 +442,15 @@ export default function Jobs() {
           onClose={() => setChatTarget(null)}
           recipientId={chatTarget.id}
           recipientName={chatTarget.name}
+        />
+      )}
+
+      {/* Resume Match Modal */}
+      {selectedJobForMatch && (
+        <ResumeMatchModal
+          isOpen={!!selectedJobForMatch}
+          onClose={() => setSelectedJobForMatch(null)}
+          job={selectedJobForMatch}
         />
       )}
     </div>

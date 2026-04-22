@@ -34,60 +34,68 @@ export default function NetworkingRadar() {
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
 
+    const fallbackInsights: RadarInsight[] = [
+      {
+        id: 'welcome-1',
+        icon: '🎯',
+        title: 'Complete Your Profile',
+        message: 'Adding your skills and career interests helps our AI match you with the right alumni and opportunities.',
+        type: 'SYSTEM',
+        priority: 'high',
+        actionLabel: 'Update Profile',
+      },
+      {
+        id: 'explore-1',
+        icon: '🔍',
+        title: 'Explore Job Board',
+        message: 'Check out the latest job postings shared by DA-IICT alumni across leading companies.',
+        type: 'NEW_JOB_POST',
+        priority: 'medium',
+        actionLabel: 'View Jobs',
+      },
+      {
+        id: 'connect-1',
+        icon: '🤝',
+        title: 'Grow Your Network',
+        message: 'Connect with alumni from your department to build meaningful professional relationships.',
+        type: 'CONNECTION_OPPORTUNITY',
+        priority: 'medium',
+        actionLabel: 'Browse Alumni',
+      },
+    ];
+
     try {
       // Build activity from actual data
       const activities = await dataService.buildRadarActivitySummary();
 
       if (activities.length === 0) {
-        // Even with no data, generate general insights
-        const generalInsights: RadarInsight[] = [
-          {
-            id: 'welcome-1',
-            icon: '🎯',
-            title: 'Complete Your Profile',
-            message: 'Adding your skills and career interests helps our AI match you with the right alumni and opportunities.',
-            type: 'SYSTEM',
-            priority: 'high',
-            actionLabel: 'Update Profile',
-          },
-          {
-            id: 'explore-1',
-            icon: '🔍',
-            title: 'Explore Job Board',
-            message: 'Check out the latest job postings shared by DA-IICT alumni across leading companies.',
-            type: 'NEW_JOB_POST',
-            priority: 'medium',
-            actionLabel: 'View Jobs',
-          },
-          {
-            id: 'connect-1',
-            icon: '🤝',
-            title: 'Grow Your Network',
-            message: 'Connect with alumni from your department to build meaningful professional relationships.',
-            type: 'CONNECTION_OPPORTUNITY',
-            priority: 'medium',
-            actionLabel: 'Browse Alumni',
-          },
-        ];
-        setInsights(generalInsights);
+        setInsights(fallbackInsights);
         return;
       }
 
       // Call AI to generate personalized insights
-      const aiInsights = await aiService.getNetworkingRadarInsights(activities, {
-        name: profile.name,
-        department: profile.department,
-        skills: profile.skills,
-        graduation_year: profile.graduation_year,
-        job_role: profile.job_role,
-        company: profile.company,
-      });
+      try {
+        const aiInsights = await aiService.getNetworkingRadarInsights(activities, {
+          name: profile.name,
+          department: profile.department,
+          skills: profile.skills,
+          graduation_year: profile.graduation_year,
+          job_role: profile.job_role,
+          company: profile.company,
+        });
 
-      if (aiInsights.length > 0) {
-        setInsights(aiInsights);
+        if (aiInsights && aiInsights.length > 0) {
+          setInsights(aiInsights);
+        } else {
+          setInsights(fallbackInsights);
+        }
+      } catch (aiError) {
+        console.warn('AI Radar unavailable, using fallback insights:', aiError);
+        setInsights(fallbackInsights);
       }
     } catch (error) {
       console.error('Radar error:', error);
+      setInsights(fallbackInsights);
     } finally {
       setLoading(false);
       setRefreshing(false);

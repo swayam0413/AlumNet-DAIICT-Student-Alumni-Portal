@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Briefcase, Bot, Settings, GraduationCap, LogOut, ShieldCheck, UserCircle, MessageCircle } from 'lucide-react';
+import { LayoutDashboard, Briefcase, Bot, Settings, GraduationCap, LogOut, ShieldCheck, UserCircle, MessageCircle, FileSearch } from 'lucide-react';
 import { authService } from '../services/authService';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-hot-toast';
@@ -13,6 +13,7 @@ export default function Sidebar() {
     { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
     { icon: Briefcase, label: 'Jobs', path: '/jobs' },
     { icon: Bot, label: 'AI Assistant', path: '/ai-assistant' },
+    { icon: FileSearch, label: 'Resume Analyzer', path: '/resume-analyzer' },
     { icon: MessageCircle, label: 'Messages', path: '/messages' },
     { icon: UserCircle, label: 'My Profile', path: '/profile' },
     { icon: ShieldCheck, label: 'Admin Console', path: '/admin', hidden: !isAdmin },

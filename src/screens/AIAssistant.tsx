@@ -13,6 +13,147 @@ interface Message {
   timestamp: Date;
 }
 
+/** Render markdown-like AI text into styled React elements */
+function RenderMarkdown({ text }: { text: string }) {
+  const lines = text.split('\n');
+  const elements: React.ReactNode[] = [];
+  let listItems: React.ReactNode[] = [];
+  let listType: 'ul' | 'ol' | null = null;
+
+  const flushList = () => {
+    if (listItems.length > 0) {
+      if (listType === 'ol') {
+        elements.push(
+          <ol key={`ol-${elements.length}`} className="list-decimal pl-5 space-y-1.5 my-2">
+            {listItems}
+          </ol>
+        );
+      } else {
+        elements.push(
+          <ul key={`ul-${elements.length}`} className="space-y-1.5 my-2">
+            {listItems}
+          </ul>
+        );
+      }
+      listItems = [];
+      listType = null;
+    }
+  };
+
+  const formatInline = (line: string): React.ReactNode => {
+    // Bold + Italic, Bold, Italic, Code, Links
+    const parts: React.ReactNode[] = [];
+    const regex = /(\*\*\*(.+?)\*\*\*|\*\*(.+?)\*\*|\*(.+?)\*|`(.+?)`)/g;
+    let lastIndex = 0;
+    let match;
+
+    while ((match = regex.exec(line)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push(line.slice(lastIndex, match.index));
+      }
+      if (match[2]) {
+        parts.push(<strong key={match.index} className="font-black italic">{match[2]}</strong>);
+      } else if (match[3]) {
+        parts.push(<strong key={match.index} className="font-bold text-on-surface">{match[3]}</strong>);
+      } else if (match[4]) {
+        parts.push(<em key={match.index} className="italic">{match[4]}</em>);
+      } else if (match[5]) {
+        parts.push(<code key={match.index} className="px-1.5 py-0.5 bg-stone-100 text-primary text-xs rounded font-mono">{match[5]}</code>);
+      }
+      lastIndex = match.index + match[0].length;
+    }
+    if (lastIndex < line.length) {
+      parts.push(line.slice(lastIndex));
+    }
+    return parts.length > 0 ? parts : line;
+  };
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    // Skip empty lines (but flush lists)
+    if (!trimmed) {
+      flushList();
+      elements.push(<div key={`br-${i}`} className="h-2" />);
+      continue;
+    }
+
+    // Headers
+    if (trimmed.startsWith('### ')) {
+      flushList();
+      elements.push(
+        <h4 key={`h3-${i}`} className="text-xs font-black uppercase tracking-wider text-primary mt-4 mb-1.5 flex items-center gap-1.5">
+          <span className="w-1 h-4 bg-primary rounded-full" />
+          {trimmed.slice(4)}
+        </h4>
+      );
+      continue;
+    }
+    if (trimmed.startsWith('## ')) {
+      flushList();
+      elements.push(
+        <h3 key={`h2-${i}`} className="text-sm font-black text-on-surface mt-4 mb-1.5 border-b border-stone-100 pb-1">
+          {trimmed.slice(3)}
+        </h3>
+      );
+      continue;
+    }
+    if (trimmed.startsWith('# ')) {
+      flushList();
+      elements.push(
+        <h2 key={`h1-${i}`} className="text-base font-black text-on-surface mt-3 mb-2">
+          {trimmed.slice(2)}
+        </h2>
+      );
+      continue;
+    }
+
+    // Bullet points (- or *)
+    if (/^[-*•]\s/.test(trimmed)) {
+      if (listType === 'ol') flushList();
+      listType = 'ul';
+      const content = trimmed.replace(/^[-*•]\s+/, '');
+      listItems.push(
+        <li key={`li-${i}`} className="flex items-start gap-2 text-sm leading-relaxed">
+          <span className="w-1.5 h-1.5 rounded-full bg-primary mt-2 flex-shrink-0" />
+          <span>{formatInline(content)}</span>
+        </li>
+      );
+      continue;
+    }
+
+    // Numbered list
+    if (/^\d+[.)]\s/.test(trimmed)) {
+      if (listType === 'ul') flushList();
+      listType = 'ol';
+      const num = trimmed.match(/^(\d+)/)?.[1] || '1';
+      const content = trimmed.replace(/^\d+[.)]\s+/, '');
+      listItems.push(
+        <li key={`oli-${i}`} className="flex items-start gap-2.5 text-sm leading-relaxed">
+          <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-[10px] font-black flex items-center justify-center flex-shrink-0 mt-0.5">
+            {num}
+          </span>
+          <span>{formatInline(content)}</span>
+        </li>
+      );
+      continue;
+    }
+
+    // Regular paragraph
+    flushList();
+    elements.push(
+      <p key={`p-${i}`} className="text-sm leading-relaxed">
+        {formatInline(trimmed)}
+      </p>
+    );
+  }
+
+  flushList();
+
+  return <div className="space-y-0.5">{elements}</div>;
+}
+
 const SUGGESTIONS = [
   { text: "How can I improve my resume?", emoji: "📄" },
   { text: "Career transition tips for tech", emoji: "🚀" },
@@ -183,16 +324,20 @@ export default function AIAssistant() {
               </div>
 
               {/* Message Bubble */}
-              <div className={`max-w-[75%] p-4 rounded-2xl shadow-sm ${
+              <div className={`max-w-[80%] p-4 rounded-2xl shadow-sm ${
                 msg.role === 'assistant'
                   ? 'bg-white border border-stone-100 rounded-tl-sm'
                   : 'bg-primary text-white rounded-tr-sm'
               }`}>
-                <p className={`text-sm leading-relaxed whitespace-pre-wrap ${
-                  msg.role === 'assistant' ? 'text-stone-700' : 'text-white'
-                }`}>
-                  {msg.content}
-                </p>
+                {msg.role === 'assistant' ? (
+                  <div className="text-stone-700">
+                    <RenderMarkdown text={msg.content} />
+                  </div>
+                ) : (
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap text-white">
+                    {msg.content}
+                  </p>
+                )}
                 <p className={`text-[10px] mt-2 ${
                   msg.role === 'assistant' ? 'text-stone-300' : 'text-white/60'
                 }`}>

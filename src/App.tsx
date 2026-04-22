@@ -6,6 +6,7 @@ import Home from './screens/Home';
 import Jobs from './screens/Jobs';
 import AIAssistant from './screens/AIAssistant';
 import Profile from './screens/Profile';
+import ResumeAnalyzer from './screens/ResumeAnalyzer';
 import Admin from './screens/Admin';
 import Login from './screens/Login';
 import Settings from './screens/Settings';
@@ -39,6 +40,7 @@ export default function App() {
             <Route path="/jobs" element={<Jobs />} />
             <Route path="/ai-assistant" element={<AIAssistant />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/resume-analyzer" element={<ResumeAnalyzer />} />
             <Route path="/profile/:id" element={<Profile />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/settings" element={<Settings />} />

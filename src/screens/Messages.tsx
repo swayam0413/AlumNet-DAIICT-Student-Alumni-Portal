@@ -3,8 +3,75 @@ import { MessageCircle, Loader2, ArrowLeft, Send, User, Search, Users, Phone, Vi
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
 import { dataService, Conversation } from '../services/dataService';
+import { collection, query, orderBy, onSnapshot, where } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 import { UserProfile } from '../services/authService';
 import { toast } from 'react-hot-toast';
+
+/** Format chat message text — renders bold, italic, code, and referral headers */
+function FormatMessage({ text, isMe }: { text: string; isMe: boolean }) {
+  // Check if this is a referral request
+  const isReferral = text.includes('Referral Request');
+
+  const formatLine = (line: string, idx: number) => {
+    // Bold
+    const parts: React.ReactNode[] = [];
+    const regex = /(\*\*(.+?)\*\*)/g;
+    let lastIdx = 0;
+    let match;
+    while ((match = regex.exec(line)) !== null) {
+      if (match.index > lastIdx) parts.push(line.slice(lastIdx, match.index));
+      parts.push(<strong key={`b-${idx}-${match.index}`} className="font-bold">{match[2]}</strong>);
+      lastIdx = match.index + match[0].length;
+    }
+    if (lastIdx < line.length) parts.push(line.slice(lastIdx));
+    return parts.length > 0 ? parts : line;
+  };
+
+  if (isReferral && !isMe) {
+    // Parse referral message with special card styling
+    const lines = text.split('\n').filter(l => l.trim());
+    const headerLine = lines[0] || '';
+    const bodyLines = lines.slice(1);
+    const title = headerLine.replace(/📋\s*\*\*Referral Request\*\*\s*—\s*/, '').trim();
+
+    return (
+      <div className="space-y-2">
+        {/* Referral badge */}
+        <div className="flex items-center gap-2 pb-2 border-b border-stone-100">
+          <span className="text-lg">📋</span>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-primary">Referral Request</p>
+            {title && <p className="text-xs font-bold text-stone-700 mt-0.5">{title}</p>}
+          </div>
+        </div>
+        {/* Message body */}
+        <div className="text-sm leading-relaxed space-y-1.5">
+          {bodyLines.map((line, i) => {
+            const trimmed = line.trim();
+            if (!trimmed) return null;
+            if (trimmed.toLowerCase().startsWith('subject:')) {
+              return <p key={i} className="text-[10px] font-bold text-stone-400 uppercase tracking-wide">{trimmed}</p>;
+            }
+            return <p key={i}>{formatLine(trimmed, i)}</p>;
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  // Regular message — just format inline bold
+  return (
+    <div className="text-sm leading-relaxed whitespace-pre-wrap">
+      {text.split('\n').map((line, i) => (
+        <React.Fragment key={i}>
+          {i > 0 && <br />}
+          {formatLine(line, i)}
+        </React.Fragment>
+      ))}
+    </div>
+  );
+}
 
 export default function Messages() {
   const { user, profile } = useAuth();
@@ -20,28 +87,76 @@ export default function Messages() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'chats' | 'contacts'>('contacts');
   const scrollRef = useRef<HTMLDivElement>(null);
+  const unsubMessagesRef = useRef<(() => void) | null>(null);
+  const unsubConvsRef = useRef<(() => void) | null>(null);
 
-  // Load all users & existing conversations
+  // Load all users & listen to conversations in real-time
   useEffect(() => {
     if (!user) return;
-    const loadData = async () => {
+    const loadUsers = async () => {
       setLoading(true);
       try {
-        const [users, convs] = await Promise.all([
-          dataService.getAllUsers(),
-          dataService.getConversations(user.uid),
+        // Fetch alumni and students separately (Firestore rules require role filter for list)
+        const [alumniList, studentList] = await Promise.all([
+          dataService.getAlumni({ role: 'alumni', includeUnapproved: true }),
+          dataService.getAlumni({ role: 'student', includeUnapproved: true }),
         ]);
-        // Filter out current user
-        setAllUsers(users.filter(u => u.id !== user.uid));
-        setConversations(convs);
+        const allUsersList = [...alumniList, ...studentList];
+        setAllUsers(allUsersList.filter(u => u.id !== user.uid));
       } catch (error) {
-        console.error(error);
+        console.error('Load users error:', error);
       } finally {
         setLoading(false);
       }
     };
-    loadData();
+    loadUsers();
+
+    // Real-time listener for conversations (must use array-contains to match security rules)
+    const convsQuery = query(
+      collection(db, 'conversations'),
+      where('participants', 'array-contains', user.uid)
+    );
+    unsubConvsRef.current = onSnapshot(convsQuery, (snap) => {
+      const convs = snap.docs
+        .map(d => ({ id: d.id, ...d.data() } as Conversation))
+        .sort((a, b) => {
+          const ta = typeof a.lastMessageAt === 'string' ? new Date(a.lastMessageAt).getTime() : 0;
+          const tb = typeof b.lastMessageAt === 'string' ? new Date(b.lastMessageAt).getTime() : 0;
+          return tb - ta;
+        });
+      setConversations(convs);
+    });
+
+    return () => {
+      if (unsubConvsRef.current) unsubConvsRef.current();
+      if (unsubMessagesRef.current) unsubMessagesRef.current();
+    };
   }, [user]);
+
+  // Real-time listener for messages when conversation is selected
+  useEffect(() => {
+    if (!selectedConvId) return;
+
+    // Clean up previous listener
+    if (unsubMessagesRef.current) unsubMessagesRef.current();
+
+    const msgsRef = collection(db, 'conversations', selectedConvId, 'messages');
+    unsubMessagesRef.current = onSnapshot(msgsRef, (snap) => {
+      const msgs = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .sort((a: any, b: any) => {
+          const ta = typeof a.createdAt === 'string' ? new Date(a.createdAt).getTime() : 0;
+          const tb = typeof b.createdAt === 'string' ? new Date(b.createdAt).getTime() : 0;
+          return ta - tb;
+        });
+      setMessages(msgs);
+      setLoadingMsgs(false);
+    });
+
+    return () => {
+      if (unsubMessagesRef.current) unsubMessagesRef.current();
+    };
+  }, [selectedConvId]);
 
   // Auto-scroll messages
   useEffect(() => {
@@ -64,19 +179,11 @@ export default function Messages() {
         profile.name,
         targetUser.name
       );
-      setSelectedConvId(convId);
-
-      const msgs = await dataService.getMessages(convId);
-      setMessages(msgs);
-
-      // Switch to chats tab and refresh conversations
+      setSelectedConvId(convId); // This triggers the onSnapshot listener
       setActiveTab('chats');
-      const convs = await dataService.getConversations(user.uid);
-      setConversations(convs);
     } catch (err) {
       console.error(err);
       toast.error('Failed to open chat');
-    } finally {
       setLoadingMsgs(false);
     }
   };
@@ -84,8 +191,8 @@ export default function Messages() {
   // Open existing conversation
   const openConversation = async (conv: Conversation) => {
     if (!user) return;
-    setSelectedConvId(conv.id);
     setLoadingMsgs(true);
+    setMessages([]);
 
     // Find the other user
     const otherId = conv.participants.find(p => p !== user.uid);
@@ -95,14 +202,7 @@ export default function Messages() {
     const otherUser = allUsers.find(u => u.id === otherId);
     setSelectedUser(otherUser || { id: otherId || '', name: otherName, email: '', role: 'student' as any } as UserProfile);
 
-    try {
-      const msgs = await dataService.getMessages(conv.id);
-      setMessages(msgs);
-    } catch (err) {
-      toast.error('Failed to load messages');
-    } finally {
-      setLoadingMsgs(false);
-    }
+    setSelectedConvId(conv.id); // This triggers the onSnapshot listener
   };
 
   const handleSend = async () => {
@@ -111,20 +211,9 @@ export default function Messages() {
     setInput('');
     setSending(true);
 
-    // Optimistic update
-    setMessages(prev => [...prev, {
-      id: Date.now().toString(),
-      senderId: user.uid,
-      text,
-      createdAt: new Date().toISOString(),
-    }]);
-
     try {
       await dataService.sendMessage(selectedConvId, user.uid, text);
-      // Update conversation last message
-      setConversations(prev => prev.map(c =>
-        c.id === selectedConvId ? { ...c, lastMessage: text, lastMessageAt: new Date().toISOString() } : c
-      ));
+      // onSnapshot will automatically update messages & conversations
     } catch (err) {
       toast.error('Failed to send');
     } finally {
@@ -437,12 +526,12 @@ export default function Messages() {
                             </div>
                           )}
                           <div className={`max-w-[65%] ${isMe ? 'order-1' : ''}`}>
-                            <div className={`px-4 py-2.5 text-sm leading-relaxed ${
+                            <div className={`px-4 py-2.5 ${
                               isMe
                                 ? 'bg-primary text-white rounded-2xl rounded-br-md shadow-lg shadow-primary/10'
                                 : 'bg-white text-stone-700 rounded-2xl rounded-bl-md shadow-sm border border-stone-100'
                             }`}>
-                              <p className="whitespace-pre-wrap">{msg.text}</p>
+                              <FormatMessage text={msg.text} isMe={isMe} />
                             </div>
                             <p className={`text-[9px] mt-1 px-1 ${isMe ? 'text-right text-stone-400' : 'text-stone-300'}`}>
                               {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

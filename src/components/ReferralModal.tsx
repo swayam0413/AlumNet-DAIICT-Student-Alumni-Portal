@@ -98,13 +98,30 @@ export default function ReferralModal({ isOpen, onClose, job }: ReferralModalPro
       toast.error('Generate a message first');
       return;
     }
-    if (!user || !alumni) return;
+    if (!user || !profile || !alumni) return;
 
     setSending(true);
     try {
-      // Send as a connection request with the referral message
-      await dataService.sendConnectionRequest(user.uid, alumni.id);
-      toast.success(`Referral request sent to ${alumni.name}!`);
+      // 1. Create/get conversation with the alumni
+      const convId = await dataService.getOrCreateConversation(
+        user.uid,
+        alumni.id,
+        profile.name,
+        alumni.name
+      );
+
+      // 2. Send the referral message in the conversation
+      const referralHeader = `📋 **Referral Request** — ${job.title} at ${job.company}\n\n`;
+      await dataService.sendMessage(convId, user.uid, referralHeader + generatedMessage);
+
+      // 3. Also create a connection request
+      try {
+        await dataService.sendConnectionRequest(user.uid, alumni.id);
+      } catch {
+        // Connection might already exist — that's fine
+      }
+
+      toast.success(`Referral sent to ${alumni.name}'s inbox!`);
       onClose();
     } catch (error: any) {
       toast.error(error?.message || 'Failed to send request');

@@ -1,6 +1,8 @@
 import express from 'express';
 import { createServer as createViteServer } from 'vite';
 import dotenv from 'dotenv';
+import { spawn } from 'child_process';
+import path from 'path';
 
 dotenv.config();
 
@@ -27,6 +29,31 @@ async function callGemini(prompt: string, systemInstruction?: string): Promise<s
 async function startServer() {
   const app = express();
   app.use(express.json({ limit: '10mb' }));
+
+  // Auto-start Python backend
+  const pyScript = path.join(process.cwd(), 'python_backend', 'resume_match.py');
+  console.log('🐍 Starting Python backend:', pyScript);
+  const pyProcess = spawn('python', [pyScript], {
+    stdio: ['ignore', 'pipe', 'pipe'],
+    cwd: process.cwd(),
+  });
+  pyProcess.stdout?.on('data', (d: Buffer) => {
+    const msg = d.toString().trim();
+    if (msg) console.log(`🐍 ${msg}`);
+  });
+  pyProcess.stderr?.on('data', (d: Buffer) => {
+    const msg = d.toString().trim();
+    if (msg) console.log(`🐍 [stderr] ${msg}`);
+  });
+  pyProcess.on('error', (err) => console.error('🐍 Failed to start Python:', err.message));
+  pyProcess.on('exit', (code) => {
+    if (code !== 0 && code !== null) console.error(`🐍 Python exited with code ${code}`);
+  });
+
+  // Kill Python when Node exits
+  process.on('exit', () => pyProcess.kill());
+  process.on('SIGINT', () => { pyProcess.kill(); process.exit(); });
+  process.on('SIGTERM', () => { pyProcess.kill(); process.exit(); });
 
   const FIREBASE_API_KEY = 'AIzaSyCL6eB6KyzJEKN4-fxWMO2ZFDFJvScI5gI';
 
@@ -287,6 +314,76 @@ Based on this data, generate personalized networking insights. Return a JSON arr
     } catch (error: any) {
       console.error('Networking radar error:', error);
       res.status(500).json({ error: error.message || 'Failed to generate radar insights' });
+    }
+  });
+
+  // --- Resume ↔ Job Match (proxied to Python backend) ---
+  app.post('/api/ai/match-resume', async (req, res) => {
+    try {
+      const pyRes = await fetch('http://localhost:5000/api/match-resume', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(req.body),
+      });
+      const text = await pyRes.text();
+      if (!text.trim()) {
+        return res.status(500).json({ error: 'Python backend returned empty response' });
+      }
+      res.status(pyRes.status).json(JSON.parse(text));
+    } catch (error: any) {
+      console.error('Python proxy error:', error?.message);
+      res.status(500).json({ error: 'Python backend not running. Start it with: python python_backend/resume_match.py' });
+    }
+  });
+
+  // --- LangChain-style 3-step Resume Analysis ---
+  app.post('/api/ml/resume/parse-langchain', async (req, res) => {
+    try {
+      const { fileData, mimeType } = req.body;
+      if (!GEMINI_API_KEY) return res.status(500).json({ error: 'GEMINI_API_KEY not configured' });
+
+      const { GoogleGenAI } = await import('@google/genai');
+      const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+
+      const parseJSON = (text: string) => {
+        const m = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+        if (m) return JSON.parse(m[1].trim());
+        const obj = text.match(/\{[\s\S]*\}/);
+        if (obj) return JSON.parse(obj[0]);
+        return JSON.parse(text.trim());
+      };
+
+      console.log('📄 Step 1: Extracting...');
+      const step1 = await ai.models.generateContent({
+        model: 'gemma-3-27b-it',
+        contents: [{ role: 'user', parts: [
+          { inlineData: { mimeType: mimeType || 'application/pdf', data: fileData } },
+          { text: `Extract ALL info from this resume. Return ONLY valid JSON:
+{"name":"Full Name","email":"","job_role":"Job title","company":"Company","skills":["skill1"],"graduation_year":2024,"department":"Department","education":["Degree - Uni"],"experience_years":0,"certifications":["cert1"]}
+Extract ALL skills thoroughly.` },
+        ]}],
+      });
+      const extraction = parseJSON(step1.text || '{}');
+
+      console.log('🧠 Step 2: Analyzing...');
+      const step2 = await callGemini(`Analyze this resume data. Return ONLY valid JSON:
+Data: ${JSON.stringify(extraction)}
+Return: {"summary":"2-3 sentence summary","ai_introduction":"3-4 sentence third-person intro","strengths":["s1","s2","s3"],"improvement_areas":["a1","a2"],"ai_projects":[{"title":"Name","description":"Desc","technologies":["t1"],"impact":"Impact"}]}
+Infer up to 5 projects from experience.`);
+      const analysis = parseJSON(step2);
+
+      console.log('⭐ Step 3: Scoring...');
+      const step3 = await callGemini(`Score this resume 0-100. Return ONLY valid JSON:
+Resume: ${JSON.stringify(extraction)}
+Return: {"overall_score":75,"skill_depth":80,"experience_relevance":70,"project_quality":65,"presentation":85,"feedback":"Constructive feedback."}
+Fresh grad=30-50, experienced=70-90.`);
+      const scores = parseJSON(step3);
+
+      res.json({ ...extraction, ...analysis, scores, pipeline: 'langchain-3-step', model: 'gemma-3-27b-it', steps_completed: 3 });
+      console.log('✅ Done:', extraction.name);
+    } catch (error: any) {
+      console.error('LangChain error:', error);
+      res.status(500).json({ error: error.message || 'Resume analysis failed' });
     }
   });
 
