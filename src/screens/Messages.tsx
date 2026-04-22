@@ -174,19 +174,19 @@ export default function Messages() {
       {/* Page Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-3xl font-headline font-black text-on-surface tracking-tight">Messages</h1>
+          <h1 className="text-3xl font-headline font-black text-stone-900 dark:text-white tracking-tight">Messages</h1>
           <p className="text-stone-400 text-sm font-medium">{allUsers.length} members in the DA-IICT community</p>
         </div>
       </div>
 
       {/* Main Chat Layout */}
-      <div className="flex-1 flex bg-surface-container-lowest rounded-3xl shadow-[0_16px_64px_rgba(138,114,100,0.08)] border border-stone-100 overflow-hidden min-h-0">
+      <div className="flex-1 flex bg-white dark:bg-stone-800 rounded-3xl shadow-[0_16px_64px_rgba(138,114,100,0.08)] border border-stone-100 dark:border-stone-700 overflow-hidden min-h-0">
         
         {/* Left Panel — Contacts & Chats */}
-        <div className={`w-full md:w-96 flex flex-col border-r border-stone-100 ${selectedUser ? 'hidden md:flex' : 'flex'}`}>
+        <div className={`w-full md:w-96 flex flex-col border-r border-stone-100 dark:border-stone-700 ${selectedUser ? 'hidden md:flex' : 'flex'}`}>
           
           {/* Search */}
-          <div className="p-4 border-b border-stone-100">
+          <div className="p-4 border-b border-stone-100 dark:border-stone-700">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
               <input
@@ -194,13 +194,13 @@ export default function Messages() {
                 placeholder="Search people..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-stone-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-primary/20 font-medium"
+                className="w-full pl-10 pr-4 py-2.5 bg-stone-50 dark:bg-stone-700 border-none rounded-xl text-sm text-stone-900 dark:text-white placeholder-stone-400 dark:placeholder-stone-500 focus:ring-2 focus:ring-primary/20 font-medium"
               />
             </div>
           </div>
 
           {/* Tabs */}
-          <div className="flex border-b border-stone-100">
+          <div className="flex border-b border-stone-100 dark:border-stone-700">
             <button
               onClick={() => setActiveTab('contacts')}
               className={`flex-1 py-3 text-xs font-black uppercase tracking-widest transition-all ${
@@ -232,8 +232,8 @@ export default function Messages() {
                 {/* Alumni Section */}
                 {alumni.length > 0 && (
                   <div>
-                    <div className="px-4 py-2 bg-stone-50 sticky top-0 z-10">
-                      <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">
+                    <div className="px-4 py-2 bg-stone-50 dark:bg-stone-900 sticky top-0 z-10">
+                      <p className="text-[10px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest">
                         Alumni ({alumni.length})
                       </p>
                     </div>
@@ -241,7 +241,7 @@ export default function Messages() {
                       <button
                         key={u.id}
                         onClick={() => openChat(u)}
-                        className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-orange-50/50 transition-colors text-left ${
+                        className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-orange-100 dark:hover:bg-stone-600 dark:hover:text-white transition-colors text-left ${
                           selectedUser?.id === u.id ? 'bg-primary/5 border-r-2 border-primary' : ''
                         }`}
                       >
@@ -256,8 +256,8 @@ export default function Messages() {
                           <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-emerald-500 border-2 border-white rounded-full" title="Alumni" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-bold text-sm text-on-surface truncate">{u.name}</p>
-                          <p className="text-[11px] text-stone-400 truncate">
+                          <p className="font-bold text-sm text-stone-900 dark:text-white truncate">{u.name}</p>
+                          <p className="text-[11px] text-stone-500 dark:text-stone-400 truncate">
                             {u.job_role ? `${u.job_role}` : 'Alumni'} {u.company ? `@ ${u.company}` : ''}
                           </p>
                         </div>
@@ -270,8 +270,8 @@ export default function Messages() {
                 {/* Students Section */}
                 {students.length > 0 && (
                   <div>
-                    <div className="px-4 py-2 bg-stone-50 sticky top-0 z-10">
-                      <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">
+                    <div className="px-4 py-2 bg-stone-50 dark:bg-stone-900 sticky top-0 z-10">
+                      <p className="text-[10px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest">
                         Students ({students.length})
                       </p>
                     </div>
@@ -279,7 +279,7 @@ export default function Messages() {
                       <button
                         key={u.id}
                         onClick={() => openChat(u)}
-                        className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-blue-50/50 transition-colors text-left ${
+                        className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-blue-100 dark:hover:bg-stone-600 dark:hover:text-white transition-colors text-left ${
                           selectedUser?.id === u.id ? 'bg-primary/5 border-r-2 border-primary' : ''
                         }`}
                       >
@@ -294,8 +294,8 @@ export default function Messages() {
                           <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-blue-500 border-2 border-white rounded-full" title="Student" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-bold text-sm text-on-surface truncate">{u.name}</p>
-                          <p className="text-[11px] text-stone-400 truncate">
+                          <p className="font-bold text-sm text-stone-900 dark:text-white truncate">{u.name}</p>
+                          <p className="text-[11px] text-stone-500 dark:text-stone-400 truncate">
                             {u.department || 'Student'} {u.graduation_year ? `• ${u.graduation_year}` : ''}
                           </p>
                         </div>
@@ -332,7 +332,7 @@ export default function Messages() {
                       <button
                         key={conv.id}
                         onClick={() => openConversation(conv)}
-                        className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-stone-50 transition-colors text-left border-b border-stone-50 ${
+                        className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors text-left border-b border-stone-50 dark:border-stone-700 ${
                           selectedConvId === conv.id ? 'bg-primary/5 border-r-2 border-primary' : ''
                         }`}
                       >
@@ -345,7 +345,7 @@ export default function Messages() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between">
-                            <p className="font-bold text-sm text-on-surface truncate">{otherName}</p>
+                            <p className="font-bold text-sm text-stone-900 dark:text-white truncate">{otherName}</p>
                             <span className="text-[10px] text-stone-400 flex-shrink-0 ml-2">
                               {getTimeLabel(conv.lastMessageAt)}
                             </span>
@@ -364,11 +364,11 @@ export default function Messages() {
         </div>
 
         {/* Right Panel — Chat Area */}
-        <div className={`flex-1 flex flex-col bg-stone-50/30 ${!selectedUser ? 'hidden md:flex' : 'flex'}`}>
+        <div className={`flex-1 flex flex-col bg-stone-50/30 dark:bg-gradient-to-b dark:from-stone-800 dark:to-stone-900 ${!selectedUser ? 'hidden md:flex' : 'flex'}`}>
           {selectedUser ? (
             <>
               {/* Chat Header */}
-              <div className="flex items-center gap-3 px-6 py-4 bg-white border-b border-stone-100 shadow-sm">
+              <div className="flex items-center gap-3 px-6 py-4 bg-white dark:bg-stone-800 border-b border-stone-100 dark:border-stone-700 shadow-sm">
                 <button 
                   onClick={() => { setSelectedUser(null); setSelectedConvId(null); }}
                   className="md:hidden p-2 hover:bg-stone-100 rounded-lg"
@@ -383,7 +383,7 @@ export default function Messages() {
                   )}
                 </div>
                 <div className="flex-1">
-                  <p className="font-bold text-sm text-on-surface">{selectedUser.name}</p>
+                  <p className="font-bold text-sm text-stone-900 dark:text-white">{selectedUser.name}</p>
                   <p className="text-[10px] text-stone-400">
                     {selectedUser.role === 'alumni' ? '🟢 Alumni' : '🔵 Student'}
                     {selectedUser.company ? ` • ${selectedUser.company}` : ''}
@@ -457,7 +457,7 @@ export default function Messages() {
               </div>
 
               {/* Message Input */}
-              <div className="p-4 bg-white border-t border-stone-100">
+              <div className="p-4 bg-white dark:bg-stone-800 border-t border-stone-100 dark:border-stone-700">
                 <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex items-center gap-3">
                   <div className="flex-1 relative">
                     <input
@@ -465,7 +465,7 @@ export default function Messages() {
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
                       placeholder={`Message ${selectedUser.name}...`}
-                      className="w-full px-5 py-3.5 bg-stone-50 border-none rounded-2xl text-sm focus:ring-2 focus:ring-primary/20 font-medium pr-12"
+                      className="w-full px-5 py-3.5 bg-stone-50 dark:bg-stone-700 dark:text-white dark:placeholder-stone-400 border-none rounded-2xl text-sm focus:ring-2 focus:ring-primary/20 font-medium pr-12"
                       disabled={loadingMsgs}
                     />
                     <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-300 hover:text-stone-500">

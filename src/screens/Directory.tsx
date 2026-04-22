@@ -50,7 +50,7 @@ export default function Directory() {
     <div className="space-y-10">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
         <div className="space-y-2">
-          <h2 className="text-4xl font-extrabold text-on-surface tracking-tight leading-none">Alumni Directory</h2>
+          <h2 className="text-4xl font-extrabold text-stone-900 dark:text-white tracking-tight leading-none">Alumni Directory</h2>
           <p className="text-on-surface-variant font-medium">Connecting graduates across the globe.</p>
         </div>
         
@@ -113,7 +113,7 @@ export default function Directory() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: i * 0.05 }}
-              className="bg-surface-container-lowest rounded-xl p-6 shadow-[0_12px_40px_rgba(138,114,100,0.08)] group hover:translate-y-[-4px] transition-all duration-300 flex flex-col"
+              className="bg-white dark:bg-stone-800 rounded-xl p-6 shadow-[0_12px_40px_rgba(138,114,100,0.08)] group hover:translate-y-[-4px] transition-all duration-300 flex flex-col"
             >
               <div className="flex items-start justify-between mb-6">
                 <div className="flex gap-4">
@@ -121,7 +121,7 @@ export default function Directory() {
                     <img alt={alumnus.name} src={alumnus.profile_image} className="w-full h-full object-cover" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-on-surface">{alumnus.name}</h3>
+                    <h3 className="text-lg font-bold text-stone-900 dark:text-white">{alumnus.name}</h3>
                     <p className="text-primary font-semibold text-sm">{alumnus.job_role || 'Alumna/us'}</p>
                     <p className="text-on-surface-variant text-xs font-medium">{alumnus.company || 'DA-IICT'} • Batch of {alumnus.graduation_year || 'Unknown'}</p>
                   </div>
@@ -157,7 +157,7 @@ export default function Directory() {
               </div>
             </motion.div>
           )) : (
-            <div className="col-span-full p-20 text-center bg-surface-container-low rounded-2xl border border-dashed border-outline-variant">
+            <div className="col-span-full p-20 text-center bg-surface-container-low rounded-2xl border border-dashed border-stone-200 dark:border-stone-700">
               <p className="text-stone-400 font-medium">No alumni matching your criteria were found.</p>
             </div>
           )}

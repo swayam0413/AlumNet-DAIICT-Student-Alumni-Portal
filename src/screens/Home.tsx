@@ -142,14 +142,14 @@ export default function Home() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.1 }}
-            className="bg-surface-container-lowest p-6 rounded-2xl shadow-[0_12px_40px_rgba(138,114,100,0.08)] group hover:translate-y-[-4px] transition-transform duration-300"
+            className="bg-white dark:bg-stone-800 p-6 rounded-2xl shadow-[0_12px_40px_rgba(138,114,100,0.08)] group hover:translate-y-[-4px] transition-transform duration-300"
           >
             <div className="flex justify-between items-start mb-4">
               <div className="p-3 rounded-xl bg-orange-50 text-primary">
                 <stat.icon />
               </div>
             </div>
-            <h3 className="text-3xl font-headline font-extrabold text-on-surface">{stat.value}</h3>
+            <h3 className="text-3xl font-headline font-extrabold text-stone-900 dark:text-white">{stat.value}</h3>
             <p className="text-sm font-semibold text-stone-500 uppercase tracking-wider">{stat.label}</p>
           </motion.div>
         ))}
@@ -219,7 +219,7 @@ export default function Home() {
                 </div>
               </div>
             )) : (
-              <div className="col-span-full p-12 text-center bg-surface-container-low rounded-2xl border border-dashed border-outline-variant">
+              <div className="col-span-full p-12 text-center bg-surface-container-low rounded-2xl border border-dashed border-stone-200 dark:border-stone-700">
                 <p className="text-stone-400 font-medium">No alumni joined yet.</p>
               </div>
             )}
@@ -252,7 +252,7 @@ export default function Home() {
                 </div>
               </div>
             )) : (
-              <div className="p-8 text-center bg-surface-container-low rounded-2xl border border-dashed border-outline-variant">
+              <div className="p-8 text-center bg-surface-container-low rounded-2xl border border-dashed border-stone-200 dark:border-stone-700">
                 <Calendar className="w-8 h-8 text-stone-300 mx-auto mb-2" />
                 <p className="text-xs text-stone-400 font-medium">No upcoming events scheduled yet.</p>
               </div>

@@ -111,7 +111,7 @@ export default function Jobs() {
       {/* Hero Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
         <div className="space-y-4">
-          <h2 className="text-[3.5rem] font-extrabold tracking-tight text-on-surface leading-none mb-4 font-headline">
+          <h2 className="text-[3.5rem] font-extrabold tracking-tight text-stone-900 dark:text-white leading-none mb-4 font-headline">
             The Talent <br/><span className="text-primary font-headline">Continuum.</span>
           </h2>
           <p className="text-lg text-on-surface-variant/80 max-w-2xl font-medium font-body">
@@ -137,7 +137,7 @@ export default function Jobs() {
             <motion.div 
               key={job.id} 
               layout
-              className="bg-surface-container-lowest rounded-[1.5rem] p-6 hover:shadow-[0_12px_40px_rgba(138,114,100,0.08)] transition-all duration-500 border border-outline-variant/5 flex flex-col group"
+              className="bg-white dark:bg-stone-800 rounded-[1.5rem] p-6 hover:shadow-[0_12px_40px_rgba(138,114,100,0.08)] transition-all duration-500 border border-stone-200 dark:border-stone-700 flex flex-col group"
             >
               <div className="flex justify-between items-start mb-4">
                 <div className="w-14 h-14 bg-surface-container-low rounded-2xl flex items-center justify-center p-3">
@@ -155,7 +155,7 @@ export default function Jobs() {
                 </div>
               </div>
               
-              <h4 className="text-xl font-headline font-bold text-on-surface mb-2 leading-tight group-hover:text-primary transition-colors">{job.title}</h4>
+              <h4 className="text-xl font-headline font-bold text-stone-900 dark:text-white mb-2 leading-tight group-hover:text-primary transition-colors">{job.title}</h4>
               <p className="text-on-surface-variant/60 text-sm font-medium mb-2 font-body flex items-center gap-1">
                 <Building2 className="w-3.5 h-3.5" /> {job.company} 
                 {job.location && <><span className="mx-1">•</span><MapPin className="w-3.5 h-3.5" /> {job.location}</>}
@@ -170,7 +170,7 @@ export default function Jobs() {
               )}
 
               {/* Action Buttons */}
-              <div className="mt-auto pt-4 border-t border-outline-variant/10 space-y-3">
+              <div className="mt-auto pt-4 border-t border-stone-200 dark:border-stone-700 space-y-3">
                 <div className="flex items-center justify-between">
                   <button 
                     onClick={() => handleApply(job)}
@@ -213,7 +213,7 @@ export default function Jobs() {
                     exit={{ height: 0, opacity: 0 }}
                     className="overflow-hidden"
                   >
-                    <div className="mt-4 pt-4 border-t border-outline-variant/10 space-y-3">
+                    <div className="mt-4 pt-4 border-t border-stone-200 dark:border-stone-700 space-y-3">
                       <p className="text-[10px] font-black uppercase tracking-widest text-primary">
                         DA-IICT Alumni at {job.company}
                       </p>
@@ -236,7 +236,7 @@ export default function Jobs() {
                                 )}
                               </div>
                               <div className="min-w-0 flex-1 cursor-pointer" onClick={() => navigate(`/profile/${a.id}`)}>
-                                <p className="text-sm font-bold text-on-surface truncate hover:text-primary transition-colors">{a.name}</p>
+                                <p className="text-sm font-bold text-stone-900 dark:text-white truncate hover:text-primary transition-colors">{a.name}</p>
                                 <p className="text-[10px] text-stone-400 font-medium truncate">{a.job_role || a.role}</p>
                               </div>
                               <button
@@ -258,7 +258,7 @@ export default function Jobs() {
               </AnimatePresence>
             </motion.div>
           )) : (
-            <div className="col-span-full p-20 text-center bg-surface-container-low rounded-2xl border border-dashed border-outline-variant">
+            <div className="col-span-full p-20 text-center bg-surface-container-low rounded-2xl border border-dashed border-stone-200 dark:border-stone-700">
               <Briefcase className="w-12 h-12 text-stone-300 mx-auto mb-4" />
               <p className="text-stone-400 font-medium">No job postings found. Be the first to post one!</p>
             </div>
@@ -292,7 +292,7 @@ export default function Jobs() {
               </button>
               
               <div className="mb-6">
-                <h3 className="text-2xl font-headline font-extrabold text-on-surface">Share an Opportunity</h3>
+                <h3 className="text-2xl font-headline font-extrabold text-stone-900 dark:text-white">Share an Opportunity</h3>
                 <p className="text-stone-500 text-sm font-medium mt-1">Post a job for the DA-IICT community</p>
               </div>
               
@@ -302,7 +302,7 @@ export default function Jobs() {
                   <div className="relative">
                     <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
                     <input 
-                      className="w-full bg-stone-50 border-none rounded-xl py-4 pl-11 pr-4 focus:ring-2 focus:ring-primary text-on-surface font-medium"
+                      className="w-full bg-stone-50 border-none rounded-xl py-4 pl-11 pr-4 focus:ring-2 focus:ring-primary text-stone-900 dark:text-white font-medium"
                       placeholder="e.g. Senior Software Engineer"
                       value={newJob.title}
                       onChange={(e) => setNewJob({...newJob, title: e.target.value})}
@@ -317,7 +317,7 @@ export default function Jobs() {
                     <div className="relative">
                       <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
                       <input 
-                        className="w-full bg-stone-50 border-none rounded-xl py-4 pl-11 pr-4 focus:ring-2 focus:ring-primary text-on-surface font-medium"
+                        className="w-full bg-stone-50 border-none rounded-xl py-4 pl-11 pr-4 focus:ring-2 focus:ring-primary text-stone-900 dark:text-white font-medium"
                         placeholder="e.g. Amazon"
                         value={newJob.company}
                         onChange={(e) => setNewJob({...newJob, company: e.target.value})}
@@ -330,7 +330,7 @@ export default function Jobs() {
                     <div className="relative">
                       <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
                       <input 
-                        className="w-full bg-stone-50 border-none rounded-xl py-4 pl-11 pr-4 focus:ring-2 focus:ring-primary text-on-surface font-medium"
+                        className="w-full bg-stone-50 border-none rounded-xl py-4 pl-11 pr-4 focus:ring-2 focus:ring-primary text-stone-900 dark:text-white font-medium"
                         placeholder="e.g. Bangalore / Remote"
                         value={newJob.location}
                         onChange={(e) => setNewJob({...newJob, location: e.target.value})}
@@ -346,7 +346,7 @@ export default function Jobs() {
                     <div className="relative">
                       <Tag className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
                       <select
-                        className="w-full bg-stone-50 border-none rounded-xl py-4 pl-11 pr-4 focus:ring-2 focus:ring-primary text-on-surface font-bold appearance-none"
+                        className="w-full bg-stone-50 border-none rounded-xl py-4 pl-11 pr-4 focus:ring-2 focus:ring-primary text-stone-900 dark:text-white font-bold appearance-none"
                         value={newJob.domain}
                         onChange={(e) => setNewJob({...newJob, domain: e.target.value})}
                       >
@@ -369,7 +369,7 @@ export default function Jobs() {
                     <div className="relative">
                       <Link2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
                       <input 
-                        className="w-full bg-stone-50 border-none rounded-xl py-4 pl-11 pr-4 focus:ring-2 focus:ring-primary text-on-surface font-medium"
+                        className="w-full bg-stone-50 border-none rounded-xl py-4 pl-11 pr-4 focus:ring-2 focus:ring-primary text-stone-900 dark:text-white font-medium"
                         placeholder="LinkedIn / Company URL"
                         value={newJob.apply_url}
                         onChange={(e) => setNewJob({...newJob, apply_url: e.target.value})}
@@ -383,7 +383,7 @@ export default function Jobs() {
                   <div className="relative">
                     <FileText className="absolute left-4 top-4 w-4 h-4 text-stone-400" />
                     <textarea 
-                      className="w-full bg-stone-50 border-none rounded-xl py-4 pl-11 pr-4 focus:ring-2 focus:ring-primary text-on-surface font-medium min-h-[80px] resize-none"
+                      className="w-full bg-stone-50 border-none rounded-xl py-4 pl-11 pr-4 focus:ring-2 focus:ring-primary text-stone-900 dark:text-white font-medium min-h-[80px] resize-none"
                       placeholder="e.g. 3+ years experience in React, TypeScript, Node.js..."
                       value={newJob.requirements}
                       onChange={(e) => setNewJob({...newJob, requirements: e.target.value})}
@@ -394,7 +394,7 @@ export default function Jobs() {
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-widest text-stone-400 mb-2 font-label">Job Description *</label>
                   <textarea 
-                    className="w-full bg-stone-50 border-none rounded-xl py-4 px-4 focus:ring-2 focus:ring-primary text-on-surface font-medium min-h-[120px] resize-none"
+                    className="w-full bg-stone-50 border-none rounded-xl py-4 px-4 focus:ring-2 focus:ring-primary text-stone-900 dark:text-white font-medium min-h-[120px] resize-none"
                     placeholder="Describe the role, team, growth opportunities..."
                     value={newJob.description}
                     onChange={(e) => setNewJob({...newJob, description: e.target.value})}

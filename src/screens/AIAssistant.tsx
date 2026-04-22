@@ -104,15 +104,15 @@ export default function AIAssistant() {
   return (
     <div className="flex flex-col h-[calc(100vh-6rem)] max-w-4xl mx-auto w-full">
       {/* Header */}
-      <div className="flex items-center justify-between px-2 pb-6 flex-shrink-0">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-gradient-to-br from-primary to-orange-500 rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20">
+      <div className="flex items-center justify-between px-2 pb-6 flex-shrink-0 min-h-16">
+        <div className="flex items-center gap-4 min-w-0">
+          <div className="w-12 h-12 bg-gradient-to-br from-primary to-orange-500 rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20 flex-shrink-0">
             <Bot className="w-6 h-6 text-white" />
           </div>
-          <div>
-            <h1 className="text-2xl font-headline font-black text-on-surface tracking-tight">AI Career Assistant</h1>
+          <div className="min-w-0">
+            <h1 className="text-2xl font-headline font-black text-stone-900 dark:text-white tracking-tight truncate">AI Career Assistant</h1>
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse flex-shrink-0"></span>
               <p className="text-xs text-stone-400 font-bold">Powered by Gemini • Online</p>
             </div>
           </div>
@@ -120,7 +120,7 @@ export default function AIAssistant() {
         {messages.length > 0 && (
           <button
             onClick={clearChat}
-            className="flex items-center gap-1.5 px-3 py-2 text-stone-400 hover:text-red-500 hover:bg-red-50 rounded-xl text-xs font-bold transition-all"
+            className="flex items-center gap-1.5 px-3 py-2 text-stone-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl text-xs font-bold transition-all flex-shrink-0 ml-2"
           >
             <Trash2 className="w-3.5 h-3.5" />
             Clear
@@ -139,7 +139,7 @@ export default function AIAssistant() {
             <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center mb-6">
               <MessageCircle className="w-10 h-10 text-primary" />
             </div>
-            <h2 className="text-2xl font-headline font-black text-on-surface mb-2">
+            <h2 className="text-2xl font-headline font-black text-stone-900 dark:text-white mb-2">
               Hey {firstName}! 👋
             </h2>
             <p className="text-stone-500 text-center max-w-md mb-8 font-medium">
@@ -150,7 +150,7 @@ export default function AIAssistant() {
                 <button
                   key={s.text}
                   onClick={() => handleSend(s.text)}
-                  className="text-left p-3 bg-white border border-stone-200 rounded-2xl text-sm text-stone-600 hover:border-primary hover:text-primary hover:shadow-md transition-all group"
+                  className="text-left p-3 bg-stone-50 dark:bg-stone-800 border-2 border-stone-200 dark:border-stone-700 rounded-2xl text-sm text-stone-600 dark:text-stone-300 hover:border-primary hover:bg-primary/5 dark:hover:bg-primary/10 hover:text-primary dark:hover:text-orange-400 hover:shadow-md transition-all group"
                 >
                   <span className="text-lg mb-1 block">{s.emoji}</span>
                   <span className="font-medium group-hover:font-bold transition-all">{s.text}</span>
@@ -230,10 +230,10 @@ export default function AIAssistant() {
           onSubmit={(e) => { e.preventDefault(); handleSend(); }}
           className="relative"
         >
-          <div className="bg-white shadow-[0_-4px_30px_rgba(138,114,100,0.1)] rounded-2xl border border-stone-200 flex items-center p-1.5 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/10 transition-all">
+          <div className="bg-white dark:bg-stone-800 shadow-[0_-4px_30px_rgba(138,114,100,0.1)] rounded-2xl border border-stone-200 dark:border-stone-700 flex items-center p-1.5 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/10 transition-all">
             <input
               ref={inputRef}
-              className="flex-1 border-none focus:ring-0 bg-transparent py-3 px-4 text-on-surface font-medium placeholder:text-stone-400 text-sm"
+              className="flex-1 border-none focus:ring-0 bg-transparent py-3 px-4 text-stone-900 dark:text-white font-medium placeholder:text-stone-400 dark:placeholder:text-stone-500 text-sm"
               placeholder="Ask me anything about your career..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -243,7 +243,7 @@ export default function AIAssistant() {
             <button
               type="submit"
               disabled={loading || !input.trim()}
-              className="bg-primary hover:bg-orange-700 disabled:bg-stone-200 disabled:text-stone-400 text-white w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-90"
+              className="bg-primary hover:bg-orange-700 dark:bg-orange-600 dark:hover:bg-orange-700 disabled:bg-stone-200 dark:disabled:bg-stone-700 disabled:text-stone-400 dark:disabled:text-stone-500 text-white w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-90"
             >
               <Send className="w-4 h-4" />
             </button>

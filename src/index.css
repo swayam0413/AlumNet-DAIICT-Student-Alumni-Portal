@@ -1,5 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap');
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
   --font-headline: "Manrope", sans-serif;
@@ -36,6 +37,20 @@
   }
 }
 
+/* Dark Mode Colors */
+.dark {
+  --color-surface: #1a1a1a;
+  --color-background: #1a1a1a;
+  --color-on-surface: #f0f0f0;
+  --color-outline: #6a5f54;
+  --color-outline-variant: #453a32;
+  --color-surface-container-high: #2a2a2a;
+  --color-surface-container-highest: #333333;
+  --color-surface-container-low: #0f0f0f;
+  --color-surface-container-lowest: #050505;
+  --color-on-surface-variant: #d9ccbf;
+}
+
 .custom-scrollbar::-webkit-scrollbar {
   width: 4px;
 }
@@ -45,4 +60,8 @@
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background: #ddc1b0;
   border-radius: 10px;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #6a5f54;
 }

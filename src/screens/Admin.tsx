@@ -152,7 +152,7 @@ export default function Admin() {
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="text-4xl font-headline font-black text-on-surface tracking-tight">Admin Console</h1>
+          <h1 className="text-4xl font-headline font-black text-stone-900 dark:text-white tracking-tight">Admin Console</h1>
           <p className="text-stone-500 font-medium">Manage the DA-IICT ecosystem.</p>
         </div>
         <div className="flex bg-surface-container-low p-1 rounded-xl overflow-x-auto no-scrollbar">
@@ -208,7 +208,7 @@ export default function Admin() {
                 >
                   <div>
                     <p className="text-xs font-black text-stone-400 uppercase tracking-widest mb-1">{item.label}</p>
-                    <h3 className="text-3xl font-headline font-black text-on-surface">{item.value}</h3>
+                    <h3 className="text-3xl font-headline font-black text-stone-900 dark:text-white">{item.value}</h3>
                   </div>
                   <div className={`p-4 rounded-xl ${item.bg} ${item.color}`}>
                     <item.icon className="w-6 h-6" />
@@ -218,8 +218,8 @@ export default function Admin() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div className="bg-surface-container-lowest p-8 rounded-[2rem] border border-stone-100 shadow-sm">
-                <h3 className="text-xl font-headline font-black text-on-surface mb-6 flex items-center gap-2">
+              <div className="bg-white dark:bg-stone-800 p-8 rounded-[2rem] border border-stone-100 shadow-sm">
+                <h3 className="text-xl font-headline font-black text-stone-900 dark:text-white mb-6 flex items-center gap-2">
                   <ShieldCheck className="w-5 h-5 text-primary" /> Pending Approvals
                 </h3>
                 <div className="space-y-4">
@@ -228,7 +228,7 @@ export default function Admin() {
                       <div className="flex items-center gap-3">
                         <img src={alumnus.profile_image} className="w-10 h-10 rounded-lg object-cover" alt="" />
                         <div>
-                          <p className="font-bold text-sm text-on-surface">{alumnus.name}</p>
+                          <p className="font-bold text-sm text-stone-900 dark:text-white">{alumnus.name}</p>
                           <p className="text-xs text-stone-500">{alumnus.job_role}</p>
                         </div>
                       </div>
@@ -246,8 +246,8 @@ export default function Admin() {
                 </div>
               </div>
 
-              <div className="bg-surface-container-lowest p-8 rounded-[2rem] border border-stone-100 shadow-sm">
-                <h3 className="text-xl font-headline font-black text-on-surface mb-6 flex items-center gap-2">
+              <div className="bg-white dark:bg-stone-800 p-8 rounded-[2rem] border border-stone-100 shadow-sm">
+                <h3 className="text-xl font-headline font-black text-stone-900 dark:text-white mb-6 flex items-center gap-2">
                   <Calendar className="w-5 h-5 text-primary" /> Recent Event Requests
                 </h3>
                 <div className="space-y-4">
@@ -258,7 +258,7 @@ export default function Admin() {
                           {event.day || '??'}
                         </div>
                         <div>
-                          <p className="font-bold text-sm text-on-surface">{event.title}</p>
+                          <p className="font-bold text-sm text-stone-900 dark:text-white">{event.title}</p>
                           <p className="text-xs text-stone-500">{event.type}</p>
                         </div>
                       </div>
@@ -284,7 +284,7 @@ export default function Admin() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
               <div className="flex items-center gap-3">
                 <Users className="text-primary w-6 h-6" />
-                <h2 className="text-2xl font-headline font-bold text-on-surface">User Directory</h2>
+                <h2 className="text-2xl font-headline font-bold text-stone-900 dark:text-white">User Directory</h2>
               </div>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
@@ -322,7 +322,7 @@ export default function Admin() {
                           <div className="flex items-center gap-3">
                             <img src={user.profile_image} className="w-8 h-8 rounded-lg object-cover bg-stone-100" />
                             <div>
-                                <p className="font-bold text-sm text-on-surface">{user.name}</p>
+                                <p className="font-bold text-sm text-stone-900 dark:text-white">{user.name}</p>
                                 <p className="text-[10px] text-stone-400">{user.email}</p>
                             </div>
                           </div>
@@ -370,7 +370,7 @@ export default function Admin() {
           <section className="space-y-6">
             <div className="flex items-center gap-3 mb-6">
               <ShieldCheck className="text-primary w-6 h-6" />
-              <h2 className="text-2xl font-headline font-bold text-on-surface">Pending Verification</h2>
+              <h2 className="text-2xl font-headline font-bold text-stone-900 dark:text-white">Pending Verification</h2>
             </div>
 
             {pendingAlumni.length > 0 ? (
@@ -379,12 +379,12 @@ export default function Admin() {
                   <motion.div 
                     layout
                     key={alumnus.id}
-                    className="bg-surface-container-lowest rounded-2xl p-6 shadow-sm border border-outline-variant/10"
+                    className="bg-white dark:bg-stone-800 rounded-2xl p-6 shadow-sm border border-stone-200 dark:border-stone-700"
                   >
                     <div className="flex items-center gap-4 mb-4">
                       <img src={alumnus.profile_image} className="w-12 h-12 rounded-xl object-cover" alt="" />
                       <div>
-                        <h4 className="font-bold text-on-surface leading-tight">{alumnus.name}</h4>
+                        <h4 className="font-bold text-stone-900 dark:text-white leading-tight">{alumnus.name}</h4>
                         <p className="text-xs text-stone-500">{alumnus.email}</p>
                       </div>
                     </div>
@@ -417,7 +417,7 @@ export default function Admin() {
                 ))}
               </div>
             ) : (
-              <div className="p-20 text-center bg-surface-container-low rounded-3xl border border-dashed border-outline-variant">
+              <div className="p-20 text-center bg-surface-container-low rounded-3xl border border-dashed border-stone-200 dark:border-stone-700">
                 <Users className="w-12 h-12 text-stone-300 mx-auto mb-4" />
                 <p className="text-stone-500 font-medium font-body">No pending verification requests.</p>
               </div>
@@ -430,7 +430,7 @@ export default function Admin() {
             <div className="flex items-center justify-between gap-3 mb-6">
               <div className="flex items-center gap-3">
                 <Briefcase className="text-primary w-6 h-6" />
-                <h2 className="text-2xl font-headline font-bold text-on-surface">Job Moderation</h2>
+                <h2 className="text-2xl font-headline font-bold text-stone-900 dark:text-white">Job Moderation</h2>
               </div>
               <button
                 onClick={() => setShowAddJob(true)}
@@ -469,7 +469,7 @@ export default function Admin() {
               </div>
             )}
 
-            <div className="bg-surface-container-lowest rounded-3xl overflow-hidden border border-outline-variant/10">
+            <div className="bg-white dark:bg-stone-800 rounded-3xl overflow-hidden border border-stone-200 dark:border-stone-700">
               <table className="w-full text-left">
                 <thead className="bg-surface-container-low">
                   <tr className="text-[10px] uppercase tracking-widest font-black text-stone-400">
@@ -482,7 +482,7 @@ export default function Admin() {
                   {allJobs.map((job) => (
                     <tr key={job.id} className="hover:bg-surface-container-low transition-colors group">
                       <td className="px-6 py-4">
-                        <p className="font-bold text-on-surface text-sm">{job.title}</p>
+                        <p className="font-bold text-stone-900 dark:text-white text-sm">{job.title}</p>
                       </td>
                       <td className="px-6 py-4">
                         <p className="text-sm font-medium text-stone-500">{job.company}</p>
@@ -508,7 +508,7 @@ export default function Admin() {
             <div className="flex items-center justify-between gap-3 mb-6">
               <div className="flex items-center gap-3">
                 <Calendar className="text-primary w-6 h-6" />
-                <h2 className="text-2xl font-headline font-bold text-on-surface">Event Management</h2>
+                <h2 className="text-2xl font-headline font-bold text-stone-900 dark:text-white">Event Management</h2>
               </div>
               <button
                 onClick={() => setIsEventModalOpen(true)}
@@ -520,7 +520,7 @@ export default function Admin() {
 
             <div className="grid grid-cols-1 gap-6">
               {allEvents.map((event) => (
-                <div key={event.id} className="bg-surface-container-lowest rounded-3xl p-8 border border-outline-variant/10 flex flex-col lg:flex-row gap-8">
+                <div key={event.id} className="bg-white dark:bg-stone-800 rounded-3xl p-8 border border-stone-200 dark:border-stone-700 flex flex-col lg:flex-row gap-8">
                   <div className="flex-1 space-y-6">
                     <div>
                       <div className="flex items-center gap-3 mb-2">
@@ -531,7 +531,7 @@ export default function Admin() {
                           {event.type}
                         </span>
                       </div>
-                      <h3 className="text-3xl font-headline font-black text-on-surface tracking-tight leading-tight">{event.title}</h3>
+                      <h3 className="text-3xl font-headline font-black text-stone-900 dark:text-white tracking-tight leading-tight">{event.title}</h3>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
@@ -541,7 +541,7 @@ export default function Admin() {
                         </div>
                         <div>
                           <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Date</p>
-                          <p className="font-bold text-on-surface">{event.date}</p>
+                          <p className="font-bold text-stone-900 dark:text-white">{event.date}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
@@ -550,7 +550,7 @@ export default function Admin() {
                         </div>
                         <div>
                           <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Time</p>
-                          <p className="font-bold text-on-surface">{event.time}</p>
+                          <p className="font-bold text-stone-900 dark:text-white">{event.time}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
@@ -559,7 +559,7 @@ export default function Admin() {
                         </div>
                         <div>
                           <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Audience</p>
-                          <p className="font-bold text-on-surface">{event.targetAudience || 'All'}</p>
+                          <p className="font-bold text-stone-900 dark:text-white">{event.targetAudience || 'All'}</p>
                         </div>
                       </div>
                     </div>
@@ -571,14 +571,14 @@ export default function Admin() {
                       </p>
                     </div>
 
-                    <div className="flex flex-wrap gap-8 items-center border-t border-outline-variant/10 pt-6">
+                    <div className="flex flex-wrap gap-8 items-center border-t border-stone-200 dark:border-stone-700 pt-6">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-stone-200 flex items-center justify-center">
                           <User className="w-5 h-5 text-stone-500" />
                         </div>
                         <div>
                           <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Requested by</p>
-                          <p className="text-sm font-bold text-on-surface">{event.organizerName}</p>
+                          <p className="text-sm font-bold text-stone-900 dark:text-white">{event.organizerName}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
@@ -587,7 +587,7 @@ export default function Admin() {
                         </div>
                         <div>
                           <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Contact</p>
-                          <p className="text-sm font-bold text-on-surface">{event.organizerEmail}</p>
+                          <p className="text-sm font-bold text-stone-900 dark:text-white">{event.organizerEmail}</p>
                         </div>
                       </div>
                     </div>
@@ -612,7 +612,7 @@ export default function Admin() {
                 </div>
               ))}
               {allEvents.length === 0 && (
-                <div className="p-20 text-center bg-surface-container-low rounded-3xl border border-dashed border-outline-variant">
+                <div className="p-20 text-center bg-surface-container-low rounded-3xl border border-dashed border-stone-200 dark:border-stone-700">
                   <Calendar className="w-12 h-12 text-stone-300 mx-auto mb-4" />
                   <p className="text-stone-500 font-medium font-body">No event requests recorded.</p>
                 </div>

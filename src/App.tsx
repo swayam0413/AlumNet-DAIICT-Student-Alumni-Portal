@@ -11,6 +11,10 @@ import Login from './screens/Login';
 import Settings from './screens/Settings';
 import Messages from './screens/Messages';
 import NotFound from './screens/NotFound';
+import { useEffect } from "react";
+
+
+
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, profile, loading } = useAuth();
@@ -28,6 +32,15 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 export default function App() {
+
+  
+useEffect(() => {
+  const savedTheme = localStorage.getItem("theme");
+
+  if (savedTheme === "dark") {
+    document.documentElement.classList.add("dark");
+  }
+}, []);
   return (
     <AuthProvider>
       <BrowserRouter>

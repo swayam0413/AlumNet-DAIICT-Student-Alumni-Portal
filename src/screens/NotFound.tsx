@@ -12,7 +12,7 @@ export default function NotFound() {
           <span className="text-5xl font-headline font-black text-primary">404</span>
         </div>
         <div className="space-y-3">
-          <h1 className="text-4xl font-headline font-black text-on-surface tracking-tight">Page Not Found</h1>
+          <h1 className="text-4xl font-headline font-black text-stone-900 dark:text-white tracking-tight">Page Not Found</h1>
           <p className="text-stone-500 font-medium">
             The page you're looking for doesn't exist or has been moved.
           </p>

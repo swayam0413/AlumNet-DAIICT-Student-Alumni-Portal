@@ -104,12 +104,12 @@ export default function Profile() {
   // If profile is missing and it's our own, we show setup
   if (isOwnProfile && !loggedInProfile && !isEditing) {
     return (
-      <div className="max-w-xl mx-auto mt-20 p-12 bg-surface-container-lowest rounded-[40px] shadow-2xl shadow-primary/5 border border-outline-variant/10 text-center space-y-8">
+      <div className="max-w-xl mx-auto mt-20 p-12 bg-white dark:bg-stone-800 rounded-[40px] shadow-2xl shadow-primary/5 border border-stone-200 dark:border-stone-700 text-center space-y-8">
         <div className="w-24 h-24 bg-primary/10 rounded-3xl flex items-center justify-center mx-auto animate-pulse">
           <BrainCircuit className="text-primary w-12 h-12" />
         </div>
         <div className="space-y-3">
-          <h1 className="text-3xl font-headline font-extrabold tracking-tight text-on-surface">Welcome to AlumConnect</h1>
+          <h1 className="text-3xl font-headline font-extrabold tracking-tight text-stone-900 dark:text-white">Welcome to AlumConnect</h1>
           <p className="text-on-surface-variant font-medium font-body leading-relaxed">
             Let's build your professional legacy. Upload your resume and our AI will automatically construct your profile for you.
           </p>
@@ -280,7 +280,7 @@ export default function Profile() {
         {isOwnProfile && !isEditing && (
           <button 
             onClick={() => setIsEditing(true)}
-            className="absolute bottom-15 right-6 p-4 bg-white/90 backdrop-blur rounded-2xl shadow-xl hover:bg-white transition-all flex items-center gap-2 font-bold text-sm text-on-surface"
+            className="absolute bottom-15 right-6 p-4 bg-white/90 backdrop-blur rounded-2xl shadow-xl hover:bg-white transition-all flex items-center gap-2 font-bold text-sm text-stone-900 dark:text-white"
           >
             <Edit2 className="w-4 h-4" />
             Edit User Profile
@@ -312,7 +312,7 @@ export default function Profile() {
 
       <div className="-mt-24 relative z-10 pb-20 space-y-12 px-4 md:px-0">
         {/* Profile Identity Card */}
-        <div className="bg-surface-container-lowest rounded-[40px] p-8 shadow-[0_32px_80px_rgba(138,114,100,0.12)] border border-outline-variant/10">
+        <div className="bg-white dark:bg-stone-800 rounded-[40px] p-8 shadow-[0_32px_80px_rgba(138,114,100,0.12)] border border-stone-200 dark:border-stone-700">
           <div className="flex flex-col md:flex-row gap-8 items-start md:items-center">
             <div className="w-44 h-44 rounded-3xl bg-surface overflow-hidden border-8 border-surface-container-lowest shadow-2xl shrink-0 transition-transform hover:scale-105 duration-500">
               <img 
@@ -326,7 +326,7 @@ export default function Profile() {
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <input 
-                      className="text-2xl font-headline font-extrabold tracking-tight text-on-surface w-full bg-stone-50 border-2 border-transparent rounded-2xl py-3 px-6 focus:ring-0 focus:border-primary transition-all"
+                      className="text-2xl font-headline font-extrabold tracking-tight text-stone-900 dark:text-white w-full bg-stone-50 border-2 border-transparent rounded-2xl py-3 px-6 focus:ring-0 focus:border-primary transition-all"
                       placeholder="Your Name"
                       value={formData.name}
                       onChange={(e) => setFormData({...formData, name: e.target.value})}
@@ -363,7 +363,7 @@ export default function Profile() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <h1 className="text-4xl font-headline font-extrabold tracking-tight text-on-surface flex items-center gap-4">
+                  <h1 className="text-4xl font-headline font-extrabold tracking-tight text-stone-900 dark:text-white flex items-center gap-4">
                     {displayProfile.name}
                     {displayProfile.isApproved && <CheckCircle className="w-8 h-8 text-primary" />}
                     {displayProfile.role === 'admin' && <ShieldCheck className="w-8 h-8 text-orange-500" />}
@@ -403,12 +403,12 @@ export default function Profile() {
         {/* Details Bento Grid */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
           {isEditing ? (
-            <div className="md:col-span-12 p-10 bg-surface-container-low rounded-[40px] border border-outline-variant/10 space-y-6">
+            <div className="md:col-span-12 p-10 bg-surface-container-low rounded-[40px] border border-stone-200 dark:border-stone-700 space-y-6">
               <div className="flex items-center gap-4 mb-2">
                 <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center">
                   <FileCheck className="text-primary w-6 h-6" />
                 </div>
-                <h2 className="text-2xl font-headline font-extrabold text-on-surface">Professional Bio</h2>
+                <h2 className="text-2xl font-headline font-extrabold text-stone-900 dark:text-white">Professional Bio</h2>
               </div>
               <textarea 
                 className="w-full bg-white border-2 border-stone-100 rounded-3xl p-6 text-lg font-body focus:ring-0 focus:border-primary transition-all min-h-[200px]"
@@ -438,7 +438,7 @@ export default function Profile() {
                   <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center">
                     <FileCheck className="text-primary w-6 h-6" />
                   </div>
-                  <h2 className="text-2xl font-headline font-extrabold text-on-surface">Professional Ethos</h2>
+                  <h2 className="text-2xl font-headline font-extrabold text-stone-900 dark:text-white">Professional Ethos</h2>
                 </div>
                 <p className="text-xl text-on-surface-variant leading-relaxed font-body italic max-w-4xl">
                   "{displayProfile.resume_summary}"
@@ -489,7 +489,7 @@ export default function Profile() {
             {/* AI Cards Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Introduction Card */}
-              <div className="bg-surface-container-lowest p-10 rounded-[40px] border border-outline-variant/10 relative overflow-hidden">
+              <div className="bg-white dark:bg-stone-800 p-10 rounded-[40px] border border-stone-200 dark:border-stone-700 relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-6 opacity-5">
                   <User className="w-28 h-28" />
                 </div>
@@ -499,7 +499,7 @@ export default function Profile() {
                       <User className="text-blue-600 w-6 h-6" />
                     </div>
                     <div>
-                      <h2 className="text-xl font-headline font-extrabold text-on-surface">Introduction</h2>
+                      <h2 className="text-xl font-headline font-extrabold text-stone-900 dark:text-white">Introduction</h2>
                       <p className="text-[10px] text-stone-400 font-bold uppercase tracking-widest flex items-center gap-1">
                         <BrainCircuit className="w-3 h-3" /> AI-Generated from Resume
                       </p>
@@ -520,7 +520,7 @@ export default function Profile() {
               </div>
 
               {/* Projects Card */}
-              <div className="bg-surface-container-lowest p-10 rounded-[40px] border border-outline-variant/10 relative overflow-hidden">
+              <div className="bg-white dark:bg-stone-800 p-10 rounded-[40px] border border-stone-200 dark:border-stone-700 relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-6 opacity-5">
                   <Briefcase className="w-28 h-28" />
                 </div>
@@ -530,7 +530,7 @@ export default function Profile() {
                       <Briefcase className="text-emerald-600 w-6 h-6" />
                     </div>
                     <div>
-                      <h2 className="text-xl font-headline font-extrabold text-on-surface">Projects</h2>
+                      <h2 className="text-xl font-headline font-extrabold text-stone-900 dark:text-white">Projects</h2>
                       <p className="text-[10px] text-stone-400 font-bold uppercase tracking-widest flex items-center gap-1">
                         <BrainCircuit className="w-3 h-3" /> Extracted from Resume
                       </p>
@@ -540,7 +540,7 @@ export default function Profile() {
                     <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
                       {displayProfile.ai_projects.map((project: any, idx: number) => (
                         <div key={idx} className="p-4 bg-stone-50/80 rounded-2xl border border-stone-100 hover:border-primary/20 transition-colors">
-                          <h4 className="font-bold text-sm text-on-surface mb-1 flex items-center gap-2">
+                          <h4 className="font-bold text-sm text-stone-900 dark:text-white mb-1 flex items-center gap-2">
                             <span className="w-6 h-6 bg-primary/10 rounded-lg flex items-center justify-center text-[10px] font-black text-primary">{idx + 1}</span>
                             {project.title}
                           </h4>
@@ -562,38 +562,38 @@ export default function Profile() {
 
           {/* Extended Details Card — only show if user has extra fields */}
           {!isEditing && (
-            <div className="md:col-span-12 bg-surface-container-lowest p-10 rounded-[40px] border border-outline-variant/10">
-              <h2 className="text-2xl font-headline font-extrabold text-on-surface mb-8">Profile Details</h2>
+            <div className="md:col-span-12 bg-white dark:bg-stone-800 p-10 rounded-[40px] border border-stone-200 dark:border-stone-700">
+              <h2 className="text-2xl font-headline font-extrabold text-stone-900 dark:text-white mb-8">Profile Details</h2>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                 {/* Common Fields */}
                 {displayProfile.role && (
                   <div className="space-y-1">
                     <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Role</p>
-                    <p className="text-sm font-bold text-on-surface capitalize">{displayProfile.role}</p>
+                    <p className="text-sm font-bold text-stone-900 dark:text-white capitalize">{displayProfile.role}</p>
                   </div>
                 )}
                 {displayProfile.course && (
                   <div className="space-y-1">
                     <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Course</p>
-                    <p className="text-sm font-bold text-on-surface">{displayProfile.course}</p>
+                    <p className="text-sm font-bold text-stone-900 dark:text-white">{displayProfile.course}</p>
                   </div>
                 )}
                 {displayProfile.specialization && (
                   <div className="space-y-1">
                     <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Specialization</p>
-                    <p className="text-sm font-bold text-on-surface">{displayProfile.specialization}</p>
+                    <p className="text-sm font-bold text-stone-900 dark:text-white">{displayProfile.specialization}</p>
                   </div>
                 )}
                 {displayProfile.enrollment_year && (
                   <div className="space-y-1">
                     <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Enrollment Year</p>
-                    <p className="text-sm font-bold text-on-surface">{displayProfile.enrollment_year}</p>
+                    <p className="text-sm font-bold text-stone-900 dark:text-white">{displayProfile.enrollment_year}</p>
                   </div>
                 )}
                 {(displayProfile.graduation_year || displayProfile.passout_year) && (
                   <div className="space-y-1">
                     <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">{displayProfile.role === 'alumni' ? 'Passout Year' : 'Expected Graduation'}</p>
-                    <p className="text-sm font-bold text-on-surface">{displayProfile.graduation_year || displayProfile.passout_year}</p>
+                    <p className="text-sm font-bold text-stone-900 dark:text-white">{displayProfile.graduation_year || displayProfile.passout_year}</p>
                   </div>
                 )}
 
@@ -601,7 +601,7 @@ export default function Profile() {
                 {displayProfile.current_year && (
                   <div className="space-y-1">
                     <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Current Year</p>
-                    <p className="text-sm font-bold text-on-surface">{displayProfile.current_year}</p>
+                    <p className="text-sm font-bold text-stone-900 dark:text-white">{displayProfile.current_year}</p>
                   </div>
                 )}
                 {displayProfile.cgpa && (
@@ -613,7 +613,7 @@ export default function Profile() {
                 {displayProfile.internship_company && (
                   <div className="space-y-1">
                     <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Internship</p>
-                    <p className="text-sm font-bold text-on-surface">
+                    <p className="text-sm font-bold text-stone-900 dark:text-white">
                       {displayProfile.internship_role ? `${displayProfile.internship_role} @ ` : ''}{displayProfile.internship_company}
                     </p>
                   </div>
@@ -623,25 +623,25 @@ export default function Profile() {
                 {displayProfile.company && (
                   <div className="space-y-1">
                     <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Company</p>
-                    <p className="text-sm font-bold text-on-surface">{displayProfile.company}</p>
+                    <p className="text-sm font-bold text-stone-900 dark:text-white">{displayProfile.company}</p>
                   </div>
                 )}
                 {displayProfile.job_role && (
                   <div className="space-y-1">
                     <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Job Role</p>
-                    <p className="text-sm font-bold text-on-surface">{displayProfile.job_role}</p>
+                    <p className="text-sm font-bold text-stone-900 dark:text-white">{displayProfile.job_role}</p>
                   </div>
                 )}
                 {displayProfile.experience_years && (
                   <div className="space-y-1">
                     <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Experience</p>
-                    <p className="text-sm font-bold text-on-surface">{displayProfile.experience_years} years</p>
+                    <p className="text-sm font-bold text-stone-900 dark:text-white">{displayProfile.experience_years} years</p>
                   </div>
                 )}
                 {displayProfile.location && (
                   <div className="space-y-1">
                     <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Location</p>
-                    <p className="text-sm font-bold text-on-surface">{displayProfile.location}</p>
+                    <p className="text-sm font-bold text-stone-900 dark:text-white">{displayProfile.location}</p>
                   </div>
                 )}
                 {displayProfile.linkedin_url && (
@@ -658,8 +658,8 @@ export default function Profile() {
 
           {/* Edit Mode — Extended Fields */}
           {isEditing && (
-            <div className="md:col-span-12 bg-surface-container-lowest p-10 rounded-[40px] border border-outline-variant/10 space-y-6">
-              <h2 className="text-2xl font-headline font-extrabold text-on-surface">Extended Details</h2>
+            <div className="md:col-span-12 bg-white dark:bg-stone-800 p-10 rounded-[40px] border border-stone-200 dark:border-stone-700 space-y-6">
+              <h2 className="text-2xl font-headline font-extrabold text-stone-900 dark:text-white">Extended Details</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[10px] font-black text-stone-400 uppercase tracking-widest mb-2 ml-1">Course</label>
