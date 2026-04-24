@@ -67,15 +67,7 @@ export default function Home() {
     fetchData();
   }, [profile]);
 
-  const handleConnect = async (alumniId: string) => {
-    if (!profile) return;
-    try {
-      await dataService.sendConnectionRequest(profile.id, alumniId);
-      toast.success("Connection request sent!");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to send request");
-    }
-  };
+
 
   if (loading) {
     return (
@@ -88,7 +80,7 @@ export default function Home() {
   return (
     <div className="space-y-12">
       {isAdmin && (
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           className="bg-primary/5 border border-primary/20 rounded-[2rem] p-8 flex flex-col md:flex-row items-center justify-between gap-6"
@@ -102,7 +94,7 @@ export default function Home() {
               <p className="text-stone-600 font-medium">You have platform-wide moderation privileges.</p>
             </div>
           </div>
-          <button 
+          <button
             onClick={() => navigate('/admin')}
             className="w-full md:w-auto px-8 py-4 bg-primary text-white rounded-2xl font-black shadow-lg shadow-primary/20 hover:scale-105 transition-all text-sm uppercase tracking-widest active:scale-95"
           >
@@ -114,10 +106,10 @@ export default function Home() {
       {/* Welcome Banner */}
       <section className="relative overflow-hidden rounded-[2rem] bg-stone-900 text-white p-12 min-h-[320px] flex flex-col justify-center">
         <div className="absolute inset-0">
-          <img 
-            alt="Campus background" 
+          <img
+            alt="Campus background"
             className="w-full h-full object-cover"
-            src="/images/home_bg.png" 
+            src="/image/home_bg.jpg"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-stone-950 via-stone-950/80 to-transparent"></div>
         </div>
@@ -129,7 +121,7 @@ export default function Home() {
             Welcome home, <span className="text-primary-container">{profile?.name?.split(' ')[0] || 'Friend'}.</span>
           </h2>
           <p className="text-stone-300 text-lg font-medium leading-relaxed max-w-xl">
-            Your legacy continues here. Explore new opportunities, mentor upcoming talent, and reconnect with your fellow DA-IICT pioneers.
+            Discover new opportunities, mentor the next generation of innovators, and reconnect with your fellow DA-IICT pioneers across the globe.
           </p>
         </div>
       </section>
@@ -137,7 +129,7 @@ export default function Home() {
       {/* Stats Overview */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, i) => (
-          <motion.div 
+          <motion.div
             key={stat.id}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -164,10 +156,10 @@ export default function Home() {
           <div className="flex justify-between items-end">
             <div>
               <h2 className="text-3xl font-headline font-black tracking-tight text-orange-900">Recommended Alumni</h2>
-              <p className="text-stone-500 font-medium font-body">Curated based on your department, skills & interests.</p>
+              <p className="text-stone-500 font-medium font-body">Connect with alumni based on your department, skills, and interests.</p>
             </div>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {recommendedAlumni.length > 0 ? recommendedAlumni.map((alumnus) => (
               <div key={alumnus.id} className="bg-surface-container-lowest p-6 rounded-2xl shadow-[0_12px_40px_rgba(138,114,100,0.08)] border border-outline-variant/10">
@@ -195,27 +187,18 @@ export default function Home() {
                   ))}
                 </div>
                 <div className="flex flex-col gap-2">
-                  <button 
+                  <button
                     onClick={() => navigate(`/profile/${alumnus.id}`)}
                     className="w-full py-2 text-stone-400 font-bold text-[10px] uppercase tracking-widest hover:text-primary transition-all border border-transparent hover:border-primary/20 rounded-lg text-center"
                   >
                     View Profile
                   </button>
-                  <div className="flex gap-2">
-                    <button 
-                      onClick={() => handleConnect(alumnus.id)}
-                      className="flex-1 py-3 bg-stone-900 text-white rounded-xl font-bold text-sm hover:bg-primary transition-all flex items-center justify-center gap-2 group"
-                    >
-                      Connect <Send className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                    </button>
-                    <button
-                      onClick={() => setChatTarget({ id: alumnus.id, name: alumnus.name })}
-                      className="py-3 px-4 bg-primary/10 text-primary rounded-xl font-bold text-sm hover:bg-primary/20 transition-all"
-                      title="Send Message"
-                    >
-                      <MessageCircle className="w-4 h-4" />
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => setChatTarget({ id: alumnus.id, name: alumnus.name })}
+                    className="w-full py-3 bg-stone-900 text-white rounded-xl font-bold text-sm hover:bg-primary transition-all flex items-center justify-center gap-2"
+                  >
+                    <MessageCircle className="w-4 h-4" /> Send Message
+                  </button>
                 </div>
               </div>
             )) : (
@@ -232,7 +215,7 @@ export default function Home() {
             <h2 className="text-3xl font-headline font-black tracking-tight text-orange-900">Upcoming Events</h2>
             <p className="text-stone-500 font-medium font-body">Mark your academic calendar.</p>
           </div>
-          
+
           <div className="space-y-4">
             {events.length > 0 ? events.slice(0, 5).map((event) => (
               <div key={event.id} className="bg-surface-container-low p-4 rounded-2xl border-l-4 border-primary hover:bg-white transition-colors cursor-pointer group">
@@ -263,7 +246,7 @@ export default function Home() {
             <div className="bg-primary/5 rounded-2xl p-6 border border-primary/10 text-center">
               <h4 className="font-headline font-bold text-orange-900 mb-2">Host an Event?</h4>
               <p className="text-xs font-body text-stone-600 mb-4">Want to organize a chapter meet or a webinar for students?</p>
-              <button 
+              <button
                 onClick={() => setIsEventModalOpen(true)}
                 className="text-xs font-black text-primary uppercase tracking-widest hover:tracking-[0.15em] transition-all flex items-center justify-center w-full"
               >
@@ -273,11 +256,11 @@ export default function Home() {
           </div>
         </div>
       </div>
-      
-      <CreateEventModal 
-        isOpen={isEventModalOpen} 
+
+      <CreateEventModal
+        isOpen={isEventModalOpen}
         onClose={() => setIsEventModalOpen(false)}
-        onSuccess={() => {}}
+        onSuccess={() => { }}
       />
 
       {chatTarget && (

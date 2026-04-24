@@ -1,6 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap');
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-headline: "Manrope", sans-serif;
   --font-body: "Inter", sans-serif;
@@ -29,10 +31,28 @@
 
 @layer base {
   body {
-    @apply font-body bg-surface text-on-surface;
+    @apply font-body bg-surface text-on-surface transition-colors duration-300;
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-headline;
+  }
+
+  /* Dark mode overrides */
+  .dark {
+    --color-surface: #1a1a1a;
+    --color-background: #1a1a1a;
+    --color-on-surface: #e8e2df;
+    --color-outline: #a0897b;
+    --color-outline-variant: #4a3d35;
+    --color-surface-container-high: #2a2826;
+    --color-surface-container-highest: #353230;
+    --color-surface-container-low: #222120;
+    --color-surface-container-lowest: #141313;
+    --color-primary-container: #7a3800;
+    --color-on-primary-container: #ffdcc4;
+    --color-on-surface-variant: #d0bfb3;
+    --color-on-primary: #ffffff;
+    --color-secondary: #c4885a;
   }
 }
 
@@ -45,4 +65,7 @@
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background: #ddc1b0;
   border-radius: 10px;
+}
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #4a3d35;
 }

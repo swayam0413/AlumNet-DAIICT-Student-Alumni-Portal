@@ -14,12 +14,12 @@ export default function Layout() {
         <main className="flex-1 p-8 max-w-7xl mx-auto w-full">
           <Outlet />
         </main>
-        
+
         <footer className="mt-auto w-full py-12 px-8 flex flex-col md:flex-row justify-between items-center gap-4 bg-stone-50 dark:bg-stone-950 border-t border-outline-variant/10">
           <p className="font-body text-xs tracking-wide uppercase text-stone-400 dark:text-stone-500">
-            © 2024 DA-IICT AlumConnect. Built for Legacy.
+            © 2026 DA-IICT AlumConnect. Built for Legacy.
           </p>
-          <div className="flex flex-wrap justify-center gap-8">
+          {/* <div className="flex flex-wrap justify-center gap-8">
             {['Privacy Policy', 'Terms of Service', 'Campus Map', 'Contact Us'].map((item) => (
               <a 
                 key={item} 
@@ -29,7 +29,7 @@ export default function Layout() {
                 {item}
               </a>
             ))}
-          </div>
+          </div> */}
         </footer>
       </div>
     </div>

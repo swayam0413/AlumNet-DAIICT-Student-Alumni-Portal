@@ -227,6 +227,33 @@ class DataService {
     }
   }
 
+  async searchUsers(searchQuery: string): Promise<UserProfile[]> {
+    try {
+      const q1 = searchQuery.toLowerCase();
+      // Firestore security rules require a `role` filter for listing users.
+      // Query alumni and students separately, then filter client-side.
+      const [alumniSnap, studentSnap] = await Promise.all([
+        getDocs(query(collection(db, 'users'), where('role', '==', 'alumni'))),
+        getDocs(query(collection(db, 'users'), where('role', '==', 'student'))),
+      ]);
+
+      const allUsers = [
+        ...alumniSnap.docs.map(d => ({ id: d.id, ...d.data() } as UserProfile)),
+        ...studentSnap.docs.map(d => ({ id: d.id, ...d.data() } as UserProfile)),
+      ];
+
+      return allUsers.filter(u =>
+        (u.name && u.name.toLowerCase().includes(q1)) ||
+        (u.company && u.company.toLowerCase().includes(q1)) ||
+        (u.department && u.department.toLowerCase().includes(q1)) ||
+        (u.job_role && u.job_role.toLowerCase().includes(q1))
+      ).slice(0, 10);
+    } catch (error) {
+      console.error('searchUsers error:', error);
+      return [];
+    }
+  }
+
   // --- Stats ---
 
   async getGlobalStats(): Promise<GlobalStats> {
@@ -274,8 +301,12 @@ class DataService {
   }
 
   async postJob(job: Omit<Job, 'id'>): Promise<void> {
+    // Strip undefined values — Firestore rejects them
+    const cleanJob = Object.fromEntries(
+      Object.entries(job).filter(([_, v]) => v !== undefined)
+    );
     await addDoc(collection(db, 'jobs'), {
-      ...job,
+      ...cleanJob,
       createdAt: new Date().toISOString(),
     });
   }
@@ -653,6 +684,40 @@ class DataService {
       ));
     } catch (error) {
       console.error('markAllNotificationsRead error:', error);
+    }
+  }
+
+  async notifyUsersByRole(role: 'alumni' | 'student' | 'admin', notification: {
+    title: string;
+    message: string;
+    type: 'NETWORKING_RADAR' | 'CONNECTION' | 'EVENT' | 'JOB' | 'SYSTEM' | 'REFERRAL';
+    actionUrl?: string;
+    icon?: string;
+  }): Promise<void> {
+    try {
+      const q = query(collection(db, 'users'), where('role', '==', role));
+      const snap = await getDocs(q);
+      const promises = snap.docs.map(d =>
+        this.createNotification({
+          userId: d.id,
+          ...notification,
+        })
+      );
+      await Promise.all(promises);
+    } catch (error) {
+      console.error('notifyUsersByRole error:', error);
+    }
+  }
+
+  async sendEmailNotification(toEmails: string[], subject: string, bodyHtml: string): Promise<void> {
+    try {
+      await fetch('/api/notifications/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to_emails: toEmails, subject, body_html: bodyHtml }),
+      });
+    } catch (error) {
+      console.error('sendEmailNotification error:', error);
     }
   }
 }

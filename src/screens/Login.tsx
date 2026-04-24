@@ -210,7 +210,7 @@ export default function Login() {
           <img 
             alt="DA-IICT Campus" 
             className="w-full h-full object-cover" 
-            src="/images/login_bg.png" 
+            src="/image/login_bg.jpg" 
           />
           <div className="absolute inset-0 bg-gradient-to-tr from-stone-900 via-stone-900/80 to-primary/40"></div>
         </div>

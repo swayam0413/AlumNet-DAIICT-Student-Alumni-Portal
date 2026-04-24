@@ -9,5 +9,11 @@ export default defineConfig({
   ],
   server: {
     allowedHosts: true as any,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+    },
   },
 });

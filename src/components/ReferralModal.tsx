@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Sparkles, RefreshCw, Send, User, Briefcase, Building2, MapPin, Loader2, MessageSquareText } from 'lucide-react';
+import { X, Sparkles, RefreshCw, Send, User, Briefcase, Building2, MapPin, Loader2, MessageSquareText, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
 import { aiService } from '../services/aiService';
@@ -22,7 +22,8 @@ const TONES = [
 
 export default function ReferralModal({ isOpen, onClose, job }: ReferralModalProps) {
   const { user, profile } = useAuth();
-  const [alumni, setAlumni] = useState<UserProfile | null>(null);
+  const [companyAlumni, setCompanyAlumni] = useState<UserProfile[]>([]);
+  const [selectedAlumni, setSelectedAlumni] = useState<UserProfile | null>(null);
   const [tone, setTone] = useState('Professional');
   const [customNote, setCustomNote] = useState('');
   const [generatedMessage, setGeneratedMessage] = useState('');
@@ -30,25 +31,32 @@ export default function ReferralModal({ isOpen, onClose, job }: ReferralModalPro
   const [sending, setSending] = useState(false);
   const [loadingAlumni, setLoadingAlumni] = useState(true);
 
-  // Fetch the alumni who posted the job
+  // Fetch all alumni at the job's company
   useEffect(() => {
-    if (isOpen && job.posted_by) {
+    if (isOpen && job.company) {
       setLoadingAlumni(true);
-      dataService.getUserById(job.posted_by).then((data) => {
-        setAlumni(data);
-        setLoadingAlumni(false);
-      });
-    }
-    if (!isOpen) {
+      setSelectedAlumni(null);
       setGeneratedMessage('');
       setCustomNote('');
       setTone('Professional');
+      
+      dataService.getAlumniByCompany(job.company).then((alumni) => {
+        setCompanyAlumni(alumni);
+        // Auto-select if only one alumni
+        if (alumni.length === 1) {
+          setSelectedAlumni(alumni[0]);
+        }
+        setLoadingAlumni(false);
+      }).catch(() => {
+        setCompanyAlumni([]);
+        setLoadingAlumni(false);
+      });
     }
-  }, [isOpen, job.posted_by]);
+  }, [isOpen, job.company]);
 
   const handleGenerate = async () => {
-    if (!profile || !alumni) {
-      toast.error('Missing profile or alumni data');
+    if (!profile || !selectedAlumni) {
+      toast.error('Please select an alumni first');
       return;
     }
 
@@ -63,12 +71,12 @@ export default function ReferralModal({ isOpen, onClose, job }: ReferralModalPro
           resume_summary: profile.resume_summary,
         },
         alumni: {
-          name: alumni.name,
-          role: alumni.role,
-          job_role: alumni.job_role,
-          company: alumni.company,
-          department: alumni.department,
-          skills: alumni.skills || [],
+          name: selectedAlumni.name,
+          role: selectedAlumni.role,
+          job_role: selectedAlumni.job_role,
+          company: selectedAlumni.company,
+          department: selectedAlumni.department,
+          skills: selectedAlumni.skills || [],
         },
         job: {
           title: job.title,
@@ -98,30 +106,49 @@ export default function ReferralModal({ isOpen, onClose, job }: ReferralModalPro
       toast.error('Generate a message first');
       return;
     }
-    if (!user || !profile || !alumni) return;
+    if (!user || !profile || !selectedAlumni) return;
 
     setSending(true);
     try {
-      // 1. Create/get conversation with the alumni
+      // 1. Create/get conversation with the selected alumni
       const convId = await dataService.getOrCreateConversation(
         user.uid,
-        alumni.id,
+        selectedAlumni.id,
         profile.name,
-        alumni.name
+        selectedAlumni.name
       );
 
       // 2. Send the referral message in the conversation
       const referralHeader = `📋 **Referral Request** — ${job.title} at ${job.company}\n\n`;
       await dataService.sendMessage(convId, user.uid, referralHeader + generatedMessage);
 
-      // 3. Also create a connection request
+      // 3. Notify the selected alumni via web bell notification
       try {
-        await dataService.sendConnectionRequest(user.uid, alumni.id);
-      } catch {
-        // Connection might already exist — that's fine
+        await dataService.createNotification({
+          userId: selectedAlumni.id,
+          title: '🤝 Referral Request Received!',
+          message: `${profile.name} sent you a referral request for ${job.title} at ${job.company}`,
+          type: 'REFERRAL',
+          actionUrl: '/messages',
+          icon: '🤝',
+        });
+        // Send email notification to the alumni (fire-and-forget)
+        if (selectedAlumni.email) {
+          dataService.sendEmailNotification(
+            [selectedAlumni.email],
+            `Referral Request from ${profile.name} — ${job.title}`,
+            `<h2>You received a referral request!</h2>
+             <p><strong>${profile.name}</strong> is requesting a referral for:</p>
+             <p><strong>${job.title}</strong> at <strong>${job.company}</strong></p>
+             <p>Check your messages on AlumConnect to view the full request.</p>
+             <a href="http://localhost:5173/messages">View Messages →</a>`
+          ).catch(() => {});
+        }
+      } catch (notifErr) {
+        console.error('Referral notification error:', notifErr);
       }
 
-      toast.success(`Referral sent to ${alumni.name}'s inbox!`);
+      toast.success(`Referral sent to ${selectedAlumni.name}'s inbox!`);
       onClose();
     } catch (error: any) {
       toast.error(error?.message || 'Failed to send request');
@@ -130,7 +157,7 @@ export default function ReferralModal({ isOpen, onClose, job }: ReferralModalPro
     }
   };
 
-  const alumniFirstName = alumni?.name?.split(' ')[0] || 'Alumni';
+  const alumniFirstName = selectedAlumni?.name?.split(' ')[0] || 'Alumni';
 
   return (
     <AnimatePresence>
@@ -157,7 +184,7 @@ export default function ReferralModal({ isOpen, onClose, job }: ReferralModalPro
                 </div>
                 <div>
                   <h2 className="text-2xl font-headline font-black text-on-surface tracking-tight">Smart Referral</h2>
-                  <p className="text-stone-500 font-medium text-sm">AI-crafted, personalized referral request</p>
+                  <p className="text-stone-500 font-medium text-sm">Select an alumni & generate a personalized request</p>
                 </div>
               </div>
               <button onClick={onClose} className="p-2 hover:bg-stone-100 rounded-full transition-colors">
@@ -167,48 +194,54 @@ export default function ReferralModal({ isOpen, onClose, job }: ReferralModalPro
 
             <div className="p-8 pt-4">
               <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-                {/* Left Side — Context Info */}
+                {/* Left Side — Alumni Selection + Context */}
                 <div className="lg:col-span-2 space-y-6">
-                  {/* Alumni Info */}
+                  {/* Alumni Selection */}
                   <div className="bg-stone-50 rounded-2xl p-5 space-y-4">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-stone-400">Referring Alumni</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-stone-400">
+                      Select Alumni at {job.company}
+                    </p>
                     {loadingAlumni ? (
-                      <div className="flex items-center gap-2 text-stone-400">
+                      <div className="flex items-center gap-2 text-stone-400 py-4">
                         <Loader2 className="w-5 h-5 animate-spin" />
-                        <span className="text-sm font-medium">Loading...</span>
+                        <span className="text-sm font-medium">Finding alumni...</span>
                       </div>
-                    ) : alumni ? (
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center">
-                            {alumni.profile_image ? (
-                              <img src={alumni.profile_image} alt={alumni.name} className="w-full h-full object-cover" />
-                            ) : (
-                              <User className="w-6 h-6 text-primary" />
+                    ) : companyAlumni.length > 0 ? (
+                      <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                        {companyAlumni.map((a) => (
+                          <button
+                            key={a.id}
+                            onClick={() => {
+                              setSelectedAlumni(a);
+                              setGeneratedMessage(''); // Reset message when alumni changes
+                            }}
+                            className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left ${
+                              selectedAlumni?.id === a.id
+                                ? 'bg-primary/10 border-2 border-primary ring-2 ring-primary/20'
+                                : 'bg-white border-2 border-transparent hover:bg-stone-100'
+                            }`}
+                          >
+                            <div className="w-10 h-10 rounded-full overflow-hidden bg-primary/10 flex-shrink-0">
+                              {a.profile_image ? (
+                                <img src={a.profile_image} alt={a.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <User className="w-5 h-5 text-primary" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="font-bold text-sm text-on-surface truncate">{a.name}</p>
+                              <p className="text-xs text-stone-500 truncate">{a.job_role || a.role}</p>
+                            </div>
+                            {selectedAlumni?.id === a.id && (
+                              <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
                             )}
-                          </div>
-                          <div>
-                            <p className="font-bold text-on-surface">{alumni.name}</p>
-                            <p className="text-xs text-stone-500">{alumni.role}</p>
-                          </div>
-                        </div>
-                        <div className="space-y-2 text-sm">
-                          {alumni.job_role && (
-                            <div className="flex items-center gap-2 text-stone-600">
-                              <Briefcase className="w-4 h-4 text-stone-400" />
-                              <span className="font-medium">{alumni.job_role}</span>
-                            </div>
-                          )}
-                          {alumni.company && (
-                            <div className="flex items-center gap-2 text-stone-600">
-                              <Building2 className="w-4 h-4 text-stone-400" />
-                              <span className="font-medium">{alumni.company}</span>
-                            </div>
-                          )}
-                        </div>
+                          </button>
+                        ))}
                       </div>
                     ) : (
-                      <p className="text-sm text-stone-400 font-medium">Alumni info not available</p>
+                      <p className="text-sm text-stone-400 font-medium py-2">No alumni found at {job.company}</p>
                     )}
                   </div>
 
@@ -272,7 +305,7 @@ export default function ReferralModal({ isOpen, onClose, job }: ReferralModalPro
                   {/* Generate Button */}
                   <button
                     onClick={handleGenerate}
-                    disabled={generating || loadingAlumni}
+                    disabled={generating || loadingAlumni || !selectedAlumni}
                     className="w-full py-4 bg-gradient-to-r from-primary to-orange-500 text-white rounded-2xl font-bold shadow-xl shadow-primary/20 hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:scale-100"
                   >
                     {generating ? (
@@ -280,10 +313,15 @@ export default function ReferralModal({ isOpen, onClose, job }: ReferralModalPro
                         <Loader2 className="w-5 h-5 animate-spin" />
                         Crafting Your Message...
                       </>
+                    ) : !selectedAlumni ? (
+                      <>
+                        <User className="w-5 h-5" />
+                        Select an Alumni First
+                      </>
                     ) : (
                       <>
                         <Sparkles className="w-5 h-5" />
-                        {generatedMessage ? 'Regenerate Message' : 'Generate Smart Referral'}
+                        {generatedMessage ? 'Regenerate Message' : `Generate Referral for ${alumniFirstName}`}
                       </>
                     )}
                   </button>
@@ -297,7 +335,7 @@ export default function ReferralModal({ isOpen, onClose, job }: ReferralModalPro
                     >
                       <div className="flex items-center justify-between">
                         <label className="text-[10px] font-black uppercase tracking-widest text-stone-400">
-                          Generated Message
+                          Generated Message for {alumniFirstName}
                         </label>
                         <button
                           onClick={handleGenerate}

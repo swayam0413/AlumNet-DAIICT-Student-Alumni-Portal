@@ -70,6 +70,34 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }: CreateE
         day
       });
       toast.success("Event request sent to admin for approval!");
+
+      // --- Notification: Notify all users about new event ---
+      try {
+        const eventNotif = {
+          title: '📅 New Event!',
+          message: `${formData.organizerName} is hosting: ${formData.title} on ${month} ${day}`,
+          type: 'EVENT' as const,
+          actionUrl: '/',
+          icon: '📅',
+        };
+        await dataService.notifyUsersByRole('student', eventNotif);
+        await dataService.notifyUsersByRole('alumni', eventNotif);
+        // Email notification (fire-and-forget)
+        dataService.sendEmailNotification(
+          [],
+          `New Event: ${formData.title}`,
+          `<h2>New Event on AlumConnect!</h2>
+           <p><strong>${formData.title}</strong></p>
+           <p>📅 ${formData.date} at ${formData.time}</p>
+           <p>📍 ${formData.location}</p>
+           <p>${formData.description}</p>
+           <p>Organized by: ${formData.organizerName}</p>
+           <a href="http://localhost:5173/">View on AlumConnect →</a>`
+        ).catch(() => {});
+      } catch (notifErr) {
+        console.error('Event notification error:', notifErr);
+      }
+
       onSuccess();
       onClose();
     } catch (error) {

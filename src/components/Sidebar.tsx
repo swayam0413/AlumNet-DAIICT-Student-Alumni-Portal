@@ -8,7 +8,7 @@ import { toast } from 'react-hot-toast';
 export default function Sidebar() {
   const navigate = useNavigate();
   const { profile, isAdmin } = useAuth();
-  
+
   const navItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
     { icon: Briefcase, label: 'Jobs', path: '/jobs' },
@@ -42,11 +42,11 @@ export default function Sidebar() {
           </div>
           <div>
             <h1 className="font-headline font-black text-xl text-orange-900 tracking-tighter">AlumConnect</h1>
-            <p className="text-[10px] uppercase tracking-widest text-stone-500 font-bold">The Digital Curator</p>
+            <p className="text-[10px] uppercase tracking-widest text-stone-500 font-bold">  Daiict Networking</p>
           </div>
         </div>
       </div>
-      
+
       <nav className="flex-1 space-y-1">
         {filteredNavItems.map((item) => (
           <NavLink
@@ -54,8 +54,8 @@ export default function Sidebar() {
             to={item.path}
             className={({ isActive }) => `
               flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-300 font-headline text-base
-              ${isActive 
-                ? 'text-orange-900 dark:text-orange-400 font-bold bg-white dark:bg-stone-800 shadow-sm translate-x-1' 
+              ${isActive
+                ? 'text-orange-900 dark:text-orange-400 font-bold bg-white dark:bg-stone-800 shadow-sm translate-x-1'
                 : 'text-stone-500 dark:text-stone-400 hover:bg-stone-200/50 dark:hover:bg-stone-800/50 hover:pl-5 font-semibold'}
             `}
           >
@@ -66,24 +66,13 @@ export default function Sidebar() {
       </nav>
 
       <div className="mt-auto px-4 space-y-4">
-        <button 
+        <button
           onClick={handleLogout}
           className="flex items-center gap-3 px-4 py-3 w-full text-stone-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all font-bold text-sm"
         >
           <LogOut className="w-5 h-5" />
           Logout Account
         </button>
-
-        <div className="bg-primary/5 rounded-2xl p-4 border border-primary/10">
-          <p className="text-xs font-bold text-primary mb-2 uppercase tracking-tighter">Contributor Access</p>
-          <p className="text-sm text-on-surface-variant mb-4 font-medium">Empower the next generation.</p>
-          <button 
-            onClick={() => toast.success("Mentor application form coming soon!")}
-            className="w-full py-2 bg-primary text-white font-bold text-sm rounded-lg hover:opacity-90 transition-all shadow-md active:scale-95"
-          >
-            Upgrade to Mentor
-          </button>
-        </div>
       </div>
     </aside>
   );

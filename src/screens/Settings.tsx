@@ -216,48 +216,6 @@ export default function Settings() {
         </div>
       </section>
 
-      {/* Privacy */}
-      <section className="bg-surface-container-lowest rounded-3xl p-8 border border-outline-variant/10 shadow-sm">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-2 bg-primary/10 rounded-xl">
-            <Globe className="w-5 h-5 text-primary" />
-          </div>
-          <h2 className="text-xl font-headline font-bold text-on-surface">Privacy</h2>
-        </div>
-        <div>
-          <label className="text-xs font-bold uppercase tracking-widest text-stone-400 mb-3 block">Profile Visibility</label>
-          <div className="grid grid-cols-3 gap-3">
-            {(['public', 'alumni-only', 'private'] as const).map((option) => (
-              <button
-                key={option}
-                onClick={() => setProfileVisibility(option)}
-                className={`py-3 rounded-xl font-bold text-sm transition-all capitalize ${
-                  profileVisibility === option
-                    ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                    : 'bg-stone-50 dark:bg-stone-800 text-stone-500 hover:bg-stone-100'
-                }`}
-              >
-                {option.replace('-', ' ')}
-              </button>
-            ))}
-          </div>
-          <p className="text-xs text-stone-400 mt-2 font-medium">
-            {profileVisibility === 'public' && 'Your profile is visible to all signed-in members.'}
-            {profileVisibility === 'alumni-only' && 'Your profile is only visible to verified alumni.'}
-            {profileVisibility === 'private' && 'Your profile is hidden from directory listings.'}
-          </p>
-        </div>
-      </section>
-
-      {/* Save Preferences */}
-      <button
-        onClick={handleSavePreferences}
-        className="w-full py-4 bg-primary text-white rounded-2xl font-bold text-lg shadow-xl shadow-primary/20 hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2"
-      >
-        <Save className="w-5 h-5" />
-        Save Preferences
-      </button>
-
       {/* Security */}
       <section className="bg-surface-container-lowest rounded-3xl p-8 border border-outline-variant/10 shadow-sm">
         <div className="flex items-center gap-3 mb-6">
