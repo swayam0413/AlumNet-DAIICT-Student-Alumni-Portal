@@ -129,7 +129,7 @@ Resume Data:
 Return JSON:
 {{
   "summary": "2-3 sentence professional summary highlighting key strengths",
-  "ai_introduction": "3-4 sentence compelling professional introduction in third person. Make it engaging and highlight what makes this person stand out.",
+  "ai_introduction": "3-4 sentence polished professional bio in third person, like a LinkedIn About section. Start with their name and role (e.g., 'Swayam is a software engineer specializing in...'). Do NOT write a speech or conference introduction. Do NOT start with 'Ladies and gentlemen'. Highlight what makes them unique.",
   "strengths": ["strength1", "strength2", "strength3"],
   "improvement_areas": ["area1", "area2"],
   "ai_projects": [
@@ -215,10 +215,9 @@ An experienced professional with strong projects should score 70-90."""
 
 
 async def suggest_career_path(user_profile: dict) -> Dict[str, Any]:
-    """Generate a 5-year career path suggestion based on user profile."""
-    from google import genai
-
-    client = genai.Client(api_key=GEMINI_API_KEY)
+    """Generate a 5-year career path suggestion based on user profile using Gemma 3 27B."""
+    from utils.gemini_client import gemini as gemini_client
+    from utils.json_parser import extract_json as parse_json
 
     profile_summary = f"""Name: {user_profile.get('name', 'User')}
 Current Role: {user_profile.get('job_role', 'Not specified')}
@@ -229,59 +228,63 @@ Experience: {user_profile.get('experience_years', 0)} years
 Education: {user_profile.get('course', '')} in {user_profile.get('specialization', '')}
 Graduation: {user_profile.get('graduation_year', 'N/A')}"""
 
-    prompt = f"""Based on this professional profile, suggest a detailed 5-year career path.
-Return ONLY valid JSON:
+    prompt = f"""You are CareerPath AI — a senior career strategist who has guided 10,000+ Indian tech professionals from entry-level to leadership positions. You have deep knowledge of the Indian tech job market, salary benchmarks, and hiring trends for 2024-2029.
 
-Profile:
+=== CANDIDATE PROFILE ===
 {profile_summary}
 
-Return JSON:
+=== YOUR TASK ===
+Create a personalized, realistic 5-year career roadmap for this candidate. Your advice must be specific to the Indian tech market.
+
+=== GUIDELINES ===
+1. Be realistic about timelines — don't suggest VP roles after 2 years for a fresher.
+2. Mention SPECIFIC companies hiring in India for each stage (e.g., "Razorpay, CRED, Zerodha" not just "fintech startups").
+3. For skills_to_build: list specific technologies and certifications, not vague concepts.
+4. Each career stage should build on the previous one logically.
+5. Consider both IC (Individual Contributor) and Management tracks.
+6. Include salary expectations in LPA (Lakhs Per Annum) for Indian market.
+7. Industry trends should be specific to 2024-2029 predictions.
+
+Return ONLY a valid JSON object (no markdown, no extra text):
 {{
-  "current_position": "Their current career stage description",
-  "target_roles": ["Role 1", "Role 2", "Role 3"],
+  "current_position": "<candid 1-2 sentence assessment of where they stand today, with strengths and gaps>",
+  "target_roles": ["<aspirational role 1>", "<role 2>", "<role 3>"],
   "path": [
     {{
       "year": "Year 1",
-      "role": "Suggested role",
-      "company_type": "Type of company (Startup/MNC/FAANG)",
-      "skills_to_build": ["skill1", "skill2"],
-      "description": "What to focus on during this period"
+      "role": "<specific role title>",
+      "company_type": "<specific type: e.g., 'Series B SaaS Startup (like Razorpay, Postman)' not just 'Startup'>",
+      "skills_to_build": ["<specific skill 1>", "<specific skill 2>", "<specific skill 3>"],
+      "description": "<2-3 sentences: what to focus on, expected salary range in LPA, key milestones>"
     }},
     {{
       "year": "Year 2-3",
-      "role": "Next role",
-      "company_type": "Company type",
-      "skills_to_build": ["skill1", "skill2"],
-      "description": "Growth strategy for this period"
+      "role": "<mid-level role>",
+      "company_type": "<company type with examples>",
+      "skills_to_build": ["<skill1>", "<skill2>"],
+      "description": "<growth strategy with salary expectations>"
     }},
     {{
       "year": "Year 3-4",
-      "role": "Senior role",
-      "company_type": "Company type",
-      "skills_to_build": ["skill1", "skill2"],
-      "description": "Leadership and specialization focus"
+      "role": "<senior role>",
+      "company_type": "<company type>",
+      "skills_to_build": ["<skill1>", "<skill2>"],
+      "description": "<specialization/leadership focus>"
     }},
     {{
       "year": "Year 5+",
-      "role": "Target role",
-      "company_type": "Dream company type",
-      "skills_to_build": ["skill1", "skill2"],
-      "description": "Long-term career vision"
+      "role": "<target role>",
+      "company_type": "<dream tier>",
+      "skills_to_build": ["<skill1>", "<skill2>"],
+      "description": "<long-term vision with expected compensation range>"
     }}
   ],
-  "industry_trends": ["trend1", "trend2", "trend3"],
-  "recommended_certifications": ["cert1", "cert2"]
-}}
+  "industry_trends": ["<specific 2024-2029 trend 1>", "<trend 2>", "<trend 3>", "<trend 4>"],
+  "recommended_certifications": ["<cert 1 with provider, e.g., 'AWS Solutions Architect — Amazon'>", "<cert 2>", "<cert 3>"]
+}}"""
 
-Be specific and realistic. Consider current tech industry trends in India."""
-
-    response = client.models.generate_content(
-        model="gemma-3-27b-it",
-        contents=[{"role": "user", "parts": [{"text": prompt}]}],
-    )
-
-    result = _parse_json_safely(response.text or "{}")
-    return result
+    result_text = await gemini_client.generate(prompt)
+    return parse_json(result_text)
 
 
 def _parse_json_safely(text: str) -> dict:

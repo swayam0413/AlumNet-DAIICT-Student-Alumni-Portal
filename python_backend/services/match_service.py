@@ -15,8 +15,10 @@ async def match_resume(file_data: str, job_title: str, job_company: str,
       2. Fallback: extract text with PyPDF2 and send as plain text.
     """
 
-    prompt = f"""You are an expert ATS (Applicant Tracking System) and career advisor.
-Analyze the candidate's resume against the following job posting.
+    prompt = f"""You are ResumeMatch AI — a senior technical recruiter with 15+ years of experience at top tech companies (Google, Amazon, Microsoft). You specialize in evaluating resume-job fit with precision.
+
+=== YOUR TASK ===
+Analyze the candidate's resume against the job posting below. Provide a detailed, honest compatibility assessment.
 
 === JOB POSTING ===
 Title: {job_title}
@@ -24,40 +26,43 @@ Company: {job_company}
 Description: {job_description or 'Not provided'}
 Requirements: {job_requirements or 'Not provided'}
 
-=== INSTRUCTIONS ===
-1. Carefully read the entire resume.
-2. Compare every skill, project, experience, and qualification against the job requirements.
-3. Be realistic and precise — do NOT inflate scores.
-4. Consider both explicit keyword matches AND implied/transferable skills.
-5. Evaluate experience level fit (junior/mid/senior).
+=== EVALUATION METHODOLOGY ===
+1. **Skill Matching (40% weight)**: Map EVERY skill in the job requirements to the resume. Mark as matched (exact or synonymous) or missing.
+2. **Experience Fit (25% weight)**: Assess years of experience, seniority level, and domain relevance.
+3. **Project Relevance (20% weight)**: Evaluate if projects/work demonstrate capability for this specific role.
+4. **Keyword Optimization (15% weight)**: Check ATS-critical keywords from the job description.
 
-Return ONLY a valid JSON object (no markdown fences, no extra text before or after):
+=== SCORING RULES ===
+- Be REALISTIC — a fresh graduate applying for a senior role should score 15-30.
+- Exact skill matches score higher than transferable/related skills.
+- Industry experience matters — same industry gets bonus points.
+- Consider skill synonyms: "React" = "React.js" = "ReactJS", "ML" = "Machine Learning".
+- Don't inflate scores to be nice. Honest assessment helps candidates improve.
+
+=== VERDICT CRITERIA ===
+- "Strong Match" (75-100): Meets 80%+ of requirements, relevant experience, strong project alignment
+- "Moderate Match" (45-74): Meets 50-79% of requirements, some transferable skills, partial experience fit
+- "Weak Match" (0-44): Meets <50% of requirements, significant skill gaps, experience mismatch
+
+Return ONLY a valid JSON object (no markdown fences, no commentary):
 {{
   "match_score": <integer 0-100>,
   "verdict": "<exactly one of: Strong Match, Moderate Match, Weak Match>",
-  "verdict_summary": "<2-3 sentence explanation of why this score was given>",
-  "matched_skills": ["<skill1>", "<skill2>", "..."],
-  "missing_skills": ["<skill1>", "<skill2>", "..."],
+  "verdict_summary": "<3 sentences: 1) Overall assessment 2) Key strength 3) Biggest gap>",
+  "matched_skills": ["<skill from resume that matches job requirement>", "..."],
+  "missing_skills": ["<required skill NOT found in resume>", "..."],
   "experience_fit": {{
     "score": <integer 0-100>,
-    "summary": "<1-2 sentence assessment of experience level vs job needs>"
+    "summary": "<2 sentences: years match, domain relevance, seniority alignment>"
   }},
   "keyword_match": {{
-    "found": ["<keyword1>", "<keyword2>"],
-    "missing": ["<keyword1>", "<keyword2>"]
+    "found": ["<ATS keyword from job desc found in resume>", "..."],
+    "missing": ["<critical ATS keyword NOT in resume>", "..."]
   }},
-  "strengths": ["<strength1>", "<strength2>", "<strength3>"],
-  "improvements": ["<actionable suggestion1>", "<actionable suggestion2>", "<actionable suggestion3>"],
-  "ats_tips": ["<specific tip1>", "<specific tip2>", "<specific tip3>"]
-}}
-
-Scoring guidelines:
-- 80-100: Resume closely matches all major requirements, strong relevant experience
-- 60-79: Matches most requirements with some gaps, transferable skills present
-- 40-59: Partial match, significant skill gaps, may need upskilling
-- 0-39: Poor fit, major misalignment between resume and role
-
-Be thorough and specific in your analysis. List real skills from the resume, not generic ones."""
+  "strengths": ["<specific strength relevant to THIS job>", "<another>", "<another>"],
+  "improvements": ["<actionable: what to add/learn/highlight for THIS specific role>", "<another>", "<another>"],
+  "ats_tips": ["<specific tip to optimize resume for THIS job's ATS>", "<another>", "<another>"]
+}}"""
 
     # --- Strategy 1: Multimodal (send PDF directly to Gemma 3 27B) ---
     try:
@@ -79,50 +84,10 @@ Be thorough and specific in your analysis. List real skills from the resume, not
         if len(resume_text) < 50:
             raise ValueError("Could not extract text from PDF. Please upload a text-based PDF.")
 
-        text_prompt = f"""You are an expert ATS (Applicant Tracking System) and career advisor.
-Analyze the candidate's resume against the following job posting.
-
-=== RESUME TEXT ===
+        text_prompt = f"""=== CANDIDATE RESUME ===
 {resume_text[:8000]}
 
-=== JOB POSTING ===
-Title: {job_title}
-Company: {job_company}
-Description: {job_description or 'Not provided'}
-Requirements: {job_requirements or 'Not provided'}
-
-=== INSTRUCTIONS ===
-1. Carefully read the entire resume.
-2. Compare every skill, project, experience, and qualification against the job requirements.
-3. Be realistic and precise — do NOT inflate scores.
-4. Consider both explicit keyword matches AND implied/transferable skills.
-5. Evaluate experience level fit (junior/mid/senior).
-
-Return ONLY a valid JSON object (no markdown fences, no extra text before or after):
-{{
-  "match_score": <integer 0-100>,
-  "verdict": "<exactly one of: Strong Match, Moderate Match, Weak Match>",
-  "verdict_summary": "<2-3 sentence explanation of why this score was given>",
-  "matched_skills": ["<skill1>", "<skill2>", "..."],
-  "missing_skills": ["<skill1>", "<skill2>", "..."],
-  "experience_fit": {{
-    "score": <integer 0-100>,
-    "summary": "<1-2 sentence assessment of experience level vs job needs>"
-  }},
-  "keyword_match": {{
-    "found": ["<keyword1>", "<keyword2>"],
-    "missing": ["<keyword1>", "<keyword2>"]
-  }},
-  "strengths": ["<strength1>", "<strength2>", "<strength3>"],
-  "improvements": ["<actionable suggestion1>", "<actionable suggestion2>", "<actionable suggestion3>"],
-  "ats_tips": ["<specific tip1>", "<specific tip2>", "<specific tip3>"]
-}}
-
-Scoring guidelines:
-- 80-100: Resume closely matches all major requirements
-- 60-79: Matches most requirements with some gaps
-- 40-59: Partial match, significant gaps
-- 0-39: Poor fit, major misalignment"""
+{prompt}"""
 
         result = await gemini.generate(text_prompt)
         parsed = extract_json(result)
@@ -142,7 +107,6 @@ def _validate_result(data: dict):
     if not isinstance(data, dict):
         raise ValueError("AI returned non-dict response")
     
-    # Ensure required fields exist with defaults
     data.setdefault("match_score", 0)
     data.setdefault("verdict", "Weak Match")
     data.setdefault("verdict_summary", "Analysis could not be completed fully.")

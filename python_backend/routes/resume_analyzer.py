@@ -22,57 +22,93 @@ async def parse_resume_langchain(req: ResumeParseRequest):
     if not GEMINI_API_KEY:
         raise HTTPException(status_code=500, detail="GEMINI_API_KEY not configured")
 
-    prompt = """You are an expert resume analyst and career advisor. Analyze this resume thoroughly.
+    prompt = """You are ResumeExpert AI — a senior HR analyst and career coach with 20 years of experience reviewing 50,000+ resumes at companies like Google, McKinsey, and Goldman Sachs. You specialize in evaluating Indian engineering graduates.
 
-=== INSTRUCTIONS ===
-1. Extract all key information from the resume.
-2. Identify skills (technical + soft), projects, experience, education.
-3. Score the resume on multiple dimensions (be realistic, not inflated).
-4. Provide actionable strengths, improvement areas, and a professional introduction.
+=== YOUR TASK ===
+Perform a comprehensive resume analysis. Extract all data, evaluate quality, identify strengths/weaknesses, and score objectively.
+
+=== EXTRACTION RULES ===
+1. Extract the candidate's EXACT name, email, and contact info as written.
+2. List ALL technical skills mentioned (programming languages, frameworks, tools, databases, cloud platforms, etc.) — up to 20.
+3. Include soft skills only if explicitly demonstrated (e.g., "Led a team of 5" → Leadership).
+4. For graduation_year: use the most recent degree's year. If still studying, use expected graduation year.
+5. For experience_years: count from first job/internship to present. For students with only internships, use 0.
+6. For job_role: use the most recent or target role. For students, infer from their skills/projects (e.g., "Full Stack Developer", "ML Engineer").
+7. For company: use current employer. For students, write "Student" or "Fresher".
+
+=== ANALYSIS RULES ===
+1. ai_introduction: Write a polished 3rd-person professional bio (like a LinkedIn "About" section). It should read like: "Swayam is a software engineer specializing in..." — NOT a speech or conference introduction. Do NOT start with "Ladies and gentlemen" or any speech-style opening. Write it as a concise, impactful professional summary that highlights their key skills, experience, and what makes them unique.
+2. strengths: List 3-5 SPECIFIC strengths backed by evidence from the resume (e.g., "Strong full-stack experience demonstrated through 3 production-grade MERN projects" not just "Good at programming").
+3. improvement_areas: List 3-5 SPECIFIC, actionable suggestions (e.g., "Add quantifiable metrics to project descriptions — e.g., 'Reduced load time by 40%'" not just "Improve projects").
+4. ai_projects: Extract ALL projects mentioned. For each, identify the core tech stack and try to infer impact even if not explicitly stated.
+
+=== SCORING RUBRIC ===
+Apply these criteria strictly:
+
+**Skill Depth (0-100):**
+- 90-100: Expert-level depth in 3+ areas with production experience
+- 70-89: Strong skills with project evidence, some production work
+- 50-69: Good academic skills, limited real-world application
+- 30-49: Basic skills, mostly coursework
+- 0-29: Very few or generic skills listed
+
+**Experience Relevance (0-100):**
+- 90-100: 3+ years of directly relevant industry experience
+- 70-89: 1-3 years relevant experience or strong internships at top companies
+- 50-69: Some internship experience, mostly academic projects
+- 30-49: Only academic projects, no industry exposure
+- 0-29: No relevant experience
+
+**Project Quality (0-100):**
+- 90-100: Complex, production-deployed projects with measurable impact
+- 70-89: Well-documented projects with clear tech stack and outcomes
+- 50-69: Standard academic projects with some complexity
+- 30-49: Basic todo/calculator-level projects
+- 0-29: No meaningful projects
+
+**Presentation (0-100):**
+- 90-100: Clean formatting, quantified achievements, strong action verbs, ATS-optimized
+- 70-89: Good structure, mostly clear descriptions, some metrics
+- 50-69: Decent format but vague descriptions, no metrics
+- 30-49: Poor formatting, generic descriptions
+- 0-29: Unreadable or extremely poorly formatted
+
+**Overall Score:** Weighted average — Skills(30%) + Experience(25%) + Projects(25%) + Presentation(20%)
 
 Return ONLY a valid JSON object (no markdown fences, no extra text):
 {
-  "name": "<full name>",
-  "email": "<email if found, else null>",
-  "job_role": "<current or target role>",
-  "company": "<current company or 'Student' or 'Fresher'>",
-  "skills": ["skill1", "skill2", "...up to 15 key skills"],
-  "graduation_year": <year as integer>,
+  "name": "<exact full name>",
+  "email": "<email or null>",
+  "job_role": "<current/target role>",
+  "company": "<current company or Student/Fresher>",
+  "skills": ["<skill1>", "<skill2>", "...up to 20"],
+  "graduation_year": <integer year>,
   "department": "<department/major>",
-  "education": ["<degree1 — institution>", "<degree2 — institution>"],
-  "experience_years": <number>,
-  "certifications": ["cert1", "cert2"],
-  "summary": "<2-3 sentence professional summary extracted from resume>",
-  "ai_introduction": "<a polished 2-3 sentence professional introduction you write FOR this candidate, highlighting their strongest attributes>",
-  "strengths": ["<specific strength 1>", "<specific strength 2>", "<specific strength 3>"],
-  "improvement_areas": ["<actionable suggestion 1>", "<actionable suggestion 2>", "<actionable suggestion 3>"],
+  "education": ["<Degree — Institution — Year>"],
+  "experience_years": <integer>,
+  "certifications": ["<cert1>", "<cert2>"],
+  "summary": "<2-3 sentence factual summary extracted from resume content>",
+  "ai_introduction": "<3-4 sentence compelling introduction you write FOR this person, as if introducing them at a tech conference>",
+  "strengths": ["<specific evidence-backed strength>", "...3-5 items"],
+  "improvement_areas": ["<specific actionable suggestion>", "...3-5 items"],
   "ai_projects": [
     {
       "title": "<project name>",
-      "description": "<1-2 sentence description>",
-      "technologies": ["tech1", "tech2"],
-      "impact": "<measurable impact if mentioned>"
+      "description": "<1-2 sentence description of what it does>",
+      "technologies": ["<tech1>", "<tech2>"],
+      "impact": "<measurable impact or 'Academic project'>"
     }
   ],
   "scores": {
-    "overall_score": <0-100>,
+    "overall_score": <0-100, calculated using weighted formula above>,
     "skill_depth": <0-100>,
     "experience_relevance": <0-100>,
     "project_quality": <0-100>,
     "presentation": <0-100>,
-    "feedback": "<2-3 sentence overall feedback with specific advice>"
+    "feedback": "<3 sentences: 1) What's strongest 2) What needs most improvement 3) One specific action to boost score by 10+ points>"
   },
   "pipeline": "gemma-3-27b-multimodal"
-}
-
-Scoring guide:
-- overall_score: Weighted average considering all factors
-- skill_depth: How deep and relevant are the listed skills?
-- experience_relevance: Quality and relevance of work experience
-- project_quality: Complexity, impact, and presentation of projects
-- presentation: Resume formatting, clarity, grammar, structure
-
-Be specific and thorough. For freshers/students, focus on projects, internships, and learning trajectory."""
+}"""
 
     # Strategy 1: Multimodal — send PDF directly to Gemma 3 27B
     try:
@@ -94,9 +130,7 @@ Be specific and thorough. For freshers/students, focus on projects, internships,
         if len(resume_text) < 50:
             raise HTTPException(status_code=400, detail="Could not extract text from PDF. Upload a text-based PDF.")
 
-        text_prompt = f"""You are an expert resume analyst and career advisor.
-
-=== RESUME TEXT ===
+        text_prompt = f"""=== RESUME TEXT ===
 {resume_text[:8000]}
 
 {prompt}"""
@@ -154,3 +188,8 @@ def _validate_analysis(data: dict):
         scores.setdefault("project_quality", 0)
         scores.setdefault("presentation", 0)
         scores.setdefault("feedback", "")
+
+        # Clamp all scores to 0-100
+        for key in ["overall_score", "skill_depth", "experience_relevance", "project_quality", "presentation"]:
+            if key in scores:
+                scores[key] = max(0, min(100, int(scores[key])))
