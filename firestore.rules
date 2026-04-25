@@ -52,7 +52,14 @@ service cloud.firestore {
         (isOwner(userId) && 
          incoming().role == existing().role &&
          incoming().isApproved == existing().isApproved && 
-         incoming().diff(existing()).affectedKeys().hasOnly(['name', 'graduation_year', 'department', 'company', 'job_role', 'skills', 'profile_image', 'resume_summary', 'resume_parsed_at', 'updatedAt', 'bio', 'id', 'email', 'emailNotifications', 'pushNotifications', 'profileVisibility']))
+         incoming().diff(existing()).affectedKeys().hasOnly([
+           'name', 'graduation_year', 'department', 'company', 'job_role', 'skills', 
+           'profile_image', 'resume_summary', 'resume_parsed_at', 'updatedAt', 'bio', 'id', 'email', 
+           'emailNotifications', 'pushNotifications', 'profileVisibility', 'course', 'specialization', 
+           'enrollment_year', 'current_year', 'cgpa', 'internship_company', 'internship_role', 
+           'experience_years', 'linkedin_url', 'location', 'passout_year'
+         ])
+        )
       );
 
       allow delete: if isAdmin();
