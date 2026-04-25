@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { MapPin, CheckCircle, GraduationCap, Briefcase, BrainCircuit, Loader2, Save, X, Edit2, User, Quote, Mail, ShieldCheck, MessageCircle } from 'lucide-react';
+import { MapPin, CheckCircle, GraduationCap, Briefcase, BrainCircuit, Loader2, Save, X, Edit2, User, Quote, Mail, ShieldCheck, MessageCircle, FileCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { authService, UserProfile } from '../services/authService';
 import { dataService } from '../services/dataService';
@@ -131,19 +131,36 @@ export default function Profile() {
     if (!authUser) return;
     setEditLoading(true);
     try {
-      // If profile doesn't exist, we're basically creating it
-      const dataToSave = {
-        ...formData,
-        email: authUser.email,
-        role: loggedInProfile?.role || 'student', // Default to student
-        id: authUser.uid,
-        isApproved: loggedInProfile?.isApproved ?? true, // Default to true for easy access if missing
-      };
-      await authService.updateProfile(authUser.uid, dataToSave);
+      // Only include fields that Firestore rules allow
+      const allowedFields = [
+        'name', 'graduation_year', 'department', 'company', 'job_role', 'skills', 
+        'profile_image', 'resume_summary', 'bio', 'course', 'specialization', 
+        'enrollment_year', 'current_year', 'cgpa', 'internship_company', 
+        'internship_role', 'experience_years', 'linkedin_url', 'location', 'passout_year'
+      ];
+
+      const cleanedData: any = {};
+      allowedFields.forEach(field => {
+        const value = (formData as any)[field];
+        // Only include the field if it's not undefined and not empty string/array
+        if (value !== undefined && value !== null) {
+          cleanedData[field] = value;
+        }
+      });
+
+      // Add required fields
+      cleanedData.email = authUser.email;
+      cleanedData.role = loggedInProfile?.role || 'student';
+      cleanedData.id = authUser.uid;
+      cleanedData.isApproved = loggedInProfile?.isApproved ?? true;
+
+      console.log('Saving profile data:', cleanedData);
+      await authService.updateProfile(authUser.uid, cleanedData);
       toast.success(loggedInProfile ? "Profile updated!" : "Profile created!");
       setIsEditing(false);
-    } catch (error) {
-      toast.error("Failed to update profile");
+    } catch (error: any) {
+      console.error('Profile update error:', error);
+      toast.error(`Failed to update profile: ${error.message || 'Unknown error'}`);
     } finally {
       setEditLoading(false);
     }
