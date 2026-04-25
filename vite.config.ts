@@ -11,7 +11,7 @@ export default defineConfig({
     allowedHosts: true as any,
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        target: 'pythonbackend-geminiapikey.up.railway.app',
         changeOrigin: true,
       },
     },
