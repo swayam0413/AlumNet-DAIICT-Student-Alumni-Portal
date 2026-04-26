@@ -147,7 +147,7 @@ export default function ResumeAnalyzer() {
         </div>
         <div>
           <h1 className="text-2xl font-headline font-black text-on-surface tracking-tight">AI Resume Analyzer</h1>
-          <p className="text-sm text-stone-400 font-medium">3-step LangChain pipeline • Powered by Gemma 3 27B</p>
+          <p className="text-sm text-stone-400 font-medium">3-step pipeline • Powered by Gemma 3 27B</p>
         </div>
       </div>
 
