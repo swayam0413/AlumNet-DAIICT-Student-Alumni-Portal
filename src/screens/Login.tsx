@@ -229,7 +229,7 @@ export default function Login() {
           </p>
         </div>
         <div className="absolute bottom-8 left-16">
-          <p className="text-on-primary/50 text-xs font-semibold uppercase tracking-[0.2em] font-label">© 2024 DA-IICT Alumni Association</p>
+          <p className="text-on-primary/50 text-xs font-semibold uppercase tracking-[0.2em] font-label">© 2026 DA-IICT Alumni Association</p>
         </div>
       </aside>
 
